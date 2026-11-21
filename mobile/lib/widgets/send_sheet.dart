@@ -4,6 +4,7 @@ import '../app.dart';
 import '../core/engine.dart';
 import '../theme/tokens.g.dart';
 import 'common.dart';
+import 'flick_card.dart';
 
 Future<void> showSendSheet(BuildContext context, {String? effectId, String? deviceId}) => showModalBottomSheet<void>(
   context: context,
@@ -131,6 +132,19 @@ class _SendSheetState extends State<SendSheet> {
                   );
                 },
               ),
+            ),
+            const SizedBox(height: LumioSpace.lg),
+            FlickCard(
+              effect: effect,
+              enabled: target != null && target.online && engine.isOnline && !inFlight,
+              hint: target == null
+                  ? 'Choose a device below'
+                  : !target.online
+                  ? '${target.name} is offline'
+                  : inFlight
+                  ? 'Sending…'
+                  : 'Reconnecting…',
+              onFlick: _send,
             ),
             const SizedBox(height: LumioSpace.lg),
             Wrap(

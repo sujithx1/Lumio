@@ -11,9 +11,9 @@ class EffectsScreen extends StatelessWidget {
   final void Function({String? effectId, String? deviceId}) onSend;
 
   void _preview(BuildContext context, EffectDefinition e) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      fullscreenDialog: true,
-      builder: (_) => EffectScreen(
+    PageRouteBuilder<void>(
+      opaque: false,
+      pageBuilder: (_, _, _) => EffectScreen(
         effect: e,
         duration: e.defaultDuration,
         intensity: e.defaultIntensity,
@@ -65,7 +65,12 @@ class EffectsScreen extends StatelessWidget {
                           child: EffectSwatch(effect: e, height: double.infinity),
                         ),
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(LumioSpace.md, LumioSpace.sm, LumioSpace.md, LumioSpace.md),
+                          padding: const EdgeInsets.fromLTRB(
+                            LumioSpace.md,
+                            LumioSpace.sm,
+                            LumioSpace.md,
+                            LumioSpace.md,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [

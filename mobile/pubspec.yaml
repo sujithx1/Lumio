@@ -60,9 +60,9 @@ flutter:
   assets:
     - assets/protocol/catalog.json
   shaders:
-    - shaders/cosmic_portal.frag
     - shaders/aurora.frag
     - shaders/volcano.frag
+    - shaders/event_horizon.frag
 
   # To add assets to your application, add an assets section, like this:
   # assets:

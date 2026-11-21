@@ -93,7 +93,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
         final def = engine.catalog.byId(effect.effectId)!;
         Navigator.of(context).push(
           PageRouteBuilder<void>(
-            opaque: true,
+            opaque: false,
             transitionDuration: LumioMotion.base,
             pageBuilder: (_, _, _) => EffectScreen(
               effect: def,

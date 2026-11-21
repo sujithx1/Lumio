@@ -29,7 +29,13 @@ Future<void> main() async {
 
 /// Owns the engine; swapping relay servers rebuilds it with the same identity.
 class LumioRoot extends StatefulWidget {
-  const LumioRoot({super.key, required this.store, required this.catalog, required this.identity, required this.server});
+  const LumioRoot({
+    super.key,
+    required this.store,
+    required this.catalog,
+    required this.identity,
+    required this.server,
+  });
   final SecureStore store;
   final EffectCatalog catalog;
   final Identity identity;

@@ -120,8 +120,9 @@ class _EffectScreenState extends State<EffectScreen> with SingleTickerProviderSt
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => _finish(true),
+        // Draws over the app (the route is not opaque) on a dim backdrop, like the desktop overlay.
         child: Material(
-          color: Colors.black,
+          type: MaterialType.transparency,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -130,9 +131,13 @@ class _EffectScreenState extends State<EffectScreen> with SingleTickerProviderSt
                   _size = constraints.biggest;
                   return ValueListenableBuilder<int>(
                     valueListenable: _frame,
-                    builder: (_, _, _) => Opacity(
-                      opacity: _opacity,
-                      child: CustomPaint(painter: _SimPainter(_sim, _elapsed, widget.duration), size: _size),
+                    builder: (_, _, _) => ColoredBox(
+                      // The dim backdrop fades in and out with the effect.
+                      color: Color.fromRGBO(0, 0, 0, 0.6 * _opacity),
+                      child: Opacity(
+                        opacity: _opacity,
+                        child: CustomPaint(painter: _SimPainter(_sim, _elapsed, widget.duration), size: _size),
+                      ),
                     ),
                   );
                 },

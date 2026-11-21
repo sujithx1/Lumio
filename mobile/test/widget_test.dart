@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +10,7 @@ import 'package:lumio/core/identity.dart';
 import 'package:lumio/effects/catalog.dart';
 import 'package:lumio/effects/renderers.dart';
 import 'package:lumio/protocol/message.dart' show isEffectId;
+import 'package:lumio/widgets/flick_card.dart';
 
 void main() {
   final catalog = EffectCatalog.fromJson(File('assets/protocol/catalog.json').readAsStringSync());
@@ -22,7 +24,7 @@ void main() {
   });
 
   test('catalog ids are valid and every effect has a mobile renderer', () {
-    expect(catalog.effects, hasLength(8));
+    expect(catalog.effects, hasLength(14));
     for (final e in catalog.effects) {
       expect(isEffectId(e.id), isTrue, reason: e.id);
       expect(renderers.containsKey(e.id), isTrue, reason: 'no renderer for ${e.id}');
@@ -31,13 +33,30 @@ void main() {
   });
 
   test('canvas simulations run a full timeline without throwing', () async {
-    for (final id in ['rainbow', 'lightning', 'celebration', 'matrix', 'fireworks']) {
+    const canvasEffects = [
+      'rainbow',
+      'lightning',
+      'celebration',
+      'matrix',
+      'fireworks',
+      'cosmic-portal',
+      'spiral-orb',
+      'power-aura',
+      'giants-wall',
+      'pirate-voyage',
+      'cartoon-parade',
+    ];
+    for (final id in canvasEffects) {
       for (final intensity in [0.0, 0.5, 1.0]) {
         final sim = await renderers[id]!(intensity, false);
         const size = Size(390, 844);
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
         for (var i = 0; i <= 360; i++) {
           sim.update(i / 60, 1 / 60, i / 360, size);
+          if (i % 30 == 0) sim.paint(canvas, size, i / 60, i / 360);
         }
+        recorder.endRecording().dispose();
         sim.dispose();
       }
     }
@@ -77,5 +96,54 @@ void main() {
     await tester.tap(find.text('Devices'));
     await tester.pumpAndSettle();
     expect(find.text('Offline · retrying'), findsOneWidget);
+  });
+
+  testWidgets('flicking the card up sends; a short drag springs back', (tester) async {
+    var sent = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 320,
+              child: FlickCard(effect: catalog.effects.first, enabled: true, onFlick: () => sent++),
+            ),
+          ),
+        ),
+      ),
+    );
+    final card = find.byType(FlickCard);
+    await tester.drag(card, const Offset(0, -30));
+    await tester.pumpAndSettle();
+    expect(sent, 0);
+    expect(find.text('Flick up toward your computer'), findsOneWidget);
+
+    await tester.fling(card, const Offset(0, -200), 1500);
+    await tester.pumpAndSettle();
+    expect(sent, 1);
+    // The card flies away, then returns ready for another flick.
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(find.text('Flick up toward your computer'), findsOneWidget);
+  });
+
+  testWidgets('a disabled card explains why and ignores flicks', (tester) async {
+    var sent = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FlickCard(
+            effect: catalog.effects.first,
+            enabled: false,
+            hint: 'Studio PC is offline',
+            onFlick: () => sent++,
+          ),
+        ),
+      ),
+    );
+    await tester.fling(find.byType(FlickCard), const Offset(0, -200), 1500);
+    await tester.pumpAndSettle();
+    expect(sent, 0);
+    expect(find.text('Studio PC is offline'), findsOneWidget);
   });
 }
