@@ -1,0 +1,25 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Bun / Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Rust / Tauri
+desktop/src-tauri/target/
+desktop/src-tauri/gen/schemas/
+
+# Generated from protocol/ (recreated by `make sync`; desktop also regenerates on dev/build)
+desktop/src/styles/tokens.generated.css
+
+# Dev simulator identities
+server/.devsim/
