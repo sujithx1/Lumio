@@ -36,7 +36,7 @@
         "id": { "type": "string", "maxLength": 48, "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
         "name": { "type": "string", "minLength": 1, "maxLength": 32 },
         "description": { "type": "string", "minLength": 1, "maxLength": 160 },
-        "category": { "enum": ["space", "light", "nature", "energy", "party", "digital"] },
+        "category": { "enum": ["space", "light", "nature", "energy", "party", "digital", "anime", "cartoon"] },
         "defaultDuration": { "type": "integer", "minimum": 1000, "maximum": 15000 },
         "minDuration": { "type": "integer", "minimum": 1000, "maximum": 15000 },
         "maxDuration": { "type": "integer", "minimum": 1000, "maximum": 15000 },

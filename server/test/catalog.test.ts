@@ -26,9 +26,22 @@ describe("effect catalog", () => {
     }
   });
 
-  test("contains the eight launch effects", () => {
-    expect(catalog.effects.map((e) => e.id).sort()).toEqual(
-      ["aurora", "celebration", "cosmic-portal", "fireworks", "lightning", "matrix", "rainbow", "volcano"],
-    );
+  test("contains the launch effects", () => {
+    expect(catalog.effects.map((e) => e.id).sort()).toEqual([
+      "aurora",
+      "cartoon-parade",
+      "celebration",
+      "cosmic-portal",
+      "event-horizon",
+      "fireworks",
+      "giants-wall",
+      "lightning",
+      "matrix",
+      "pirate-voyage",
+      "power-aura",
+      "rainbow",
+      "spiral-orb",
+      "volcano",
+    ]);
   });
 });

@@ -1,33 +1,57 @@
 {
-  "version": 1,
+  "version": 2,
   "effects": [
     {
       "id": "cosmic-portal",
       "name": "Cosmic Portal",
-      "description": "A swirling wormhole tears open at the centre of the screen and pulls the stars inward.",
+      "description": "A cartoon portal swirls open at the edge of the screen and rockets, planets and stars fly out.",
       "category": "space",
       "defaultDuration": 6000,
       "minDuration": 2000,
       "maxDuration": 15000,
       "defaultIntensity": 0.7,
-      "renderer": { "web": "webgl", "flutter": "shader" },
-      "supportedPlatforms": ["macos", "windows", "linux", "android", "ios"],
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
       "hasSound": true,
-      "accent": ["#7c5cff", "#22d3ee"]
+      "accent": [
+        "#7c3aed",
+        "#f97316"
+      ]
     },
     {
       "id": "rainbow",
       "name": "Rainbow",
-      "description": "Soft spectral bands sweep across the display in a slow, luminous arc.",
+      "description": "A soft wash of prismatic light pours in from the edge and drifts across the screen.",
       "category": "light",
       "defaultDuration": 5000,
       "minDuration": 2000,
       "maxDuration": 12000,
       "defaultIntensity": 0.6,
-      "renderer": { "web": "canvas", "flutter": "painter" },
-      "supportedPlatforms": ["macos", "windows", "linux", "android", "ios"],
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
       "hasSound": false,
-      "accent": ["#f472b6", "#facc15"]
+      "accent": [
+        "#f472b6",
+        "#facc15"
+      ]
     },
     {
       "id": "volcano",
@@ -38,10 +62,22 @@
       "minDuration": 3000,
       "maxDuration": 15000,
       "defaultIntensity": 0.7,
-      "renderer": { "web": "webgl", "flutter": "shader" },
-      "supportedPlatforms": ["macos", "windows", "linux", "android", "ios"],
+      "renderer": {
+        "web": "webgl",
+        "flutter": "shader"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
       "hasSound": true,
-      "accent": ["#f97316", "#dc2626"]
+      "accent": [
+        "#f97316",
+        "#dc2626"
+      ]
     },
     {
       "id": "lightning",
@@ -52,10 +88,22 @@
       "minDuration": 1000,
       "maxDuration": 10000,
       "defaultIntensity": 0.8,
-      "renderer": { "web": "canvas", "flutter": "painter" },
-      "supportedPlatforms": ["macos", "windows", "linux", "android", "ios"],
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
       "hasSound": true,
-      "accent": ["#a5b4fc", "#e0f2fe"]
+      "accent": [
+        "#a5b4fc",
+        "#e0f2fe"
+      ]
     },
     {
       "id": "celebration",
@@ -66,10 +114,22 @@
       "minDuration": 2000,
       "maxDuration": 12000,
       "defaultIntensity": 0.7,
-      "renderer": { "web": "canvas", "flutter": "painter" },
-      "supportedPlatforms": ["macos", "windows", "linux", "android", "ios"],
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
       "hasSound": true,
-      "accent": ["#34d399", "#fbbf24"]
+      "accent": [
+        "#34d399",
+        "#fbbf24"
+      ]
     },
     {
       "id": "matrix",
@@ -80,10 +140,22 @@
       "minDuration": 2000,
       "maxDuration": 15000,
       "defaultIntensity": 0.6,
-      "renderer": { "web": "canvas", "flutter": "painter" },
-      "supportedPlatforms": ["macos", "windows", "linux", "android", "ios"],
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
       "hasSound": false,
-      "accent": ["#22c55e", "#052e16"]
+      "accent": [
+        "#22c55e",
+        "#052e16"
+      ]
     },
     {
       "id": "aurora",
@@ -94,10 +166,22 @@
       "minDuration": 3000,
       "maxDuration": 15000,
       "defaultIntensity": 0.6,
-      "renderer": { "web": "webgl", "flutter": "shader" },
-      "supportedPlatforms": ["macos", "windows", "linux", "android", "ios"],
+      "renderer": {
+        "web": "webgl",
+        "flutter": "shader"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
       "hasSound": false,
-      "accent": ["#2dd4bf", "#a78bfa"]
+      "accent": [
+        "#2dd4bf",
+        "#a78bfa"
+      ]
     },
     {
       "id": "fireworks",
@@ -108,10 +192,178 @@
       "minDuration": 2000,
       "maxDuration": 15000,
       "defaultIntensity": 0.7,
-      "renderer": { "web": "canvas", "flutter": "painter" },
-      "supportedPlatforms": ["macos", "windows", "linux", "android", "ios"],
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
       "hasSound": true,
-      "accent": ["#fb7185", "#60a5fa"]
+      "accent": [
+        "#fb7185",
+        "#60a5fa"
+      ]
+    },
+    {
+      "id": "spiral-orb",
+      "name": "Spiral Orb",
+      "description": "A spinning orb of wind energy charges at the edge, streaks across the screen and bursts into a spiral shockwave.",
+      "category": "anime",
+      "defaultDuration": 5000,
+      "minDuration": 3000,
+      "maxDuration": 10000,
+      "defaultIntensity": 0.8,
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
+      "hasSound": true,
+      "accent": [
+        "#38bdf8",
+        "#e0f2fe"
+      ]
+    },
+    {
+      "id": "pirate-voyage",
+      "name": "Pirate Voyage",
+      "description": "A cartoon ship rides the waves across your screen while gold coins splash and gulls circle.",
+      "category": "anime",
+      "defaultDuration": 7000,
+      "minDuration": 4000,
+      "maxDuration": 15000,
+      "defaultIntensity": 0.7,
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
+      "hasSound": true,
+      "accent": [
+        "#0ea5e9",
+        "#facc15"
+      ]
+    },
+    {
+      "id": "giants-wall",
+      "name": "Giant's Wall",
+      "description": "The ground shakes, a stone wall rises, and a towering giant with glowing eyes peers over it through bursts of steam.",
+      "category": "anime",
+      "defaultDuration": 7000,
+      "minDuration": 4000,
+      "maxDuration": 15000,
+      "defaultIntensity": 0.8,
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
+      "hasSound": true,
+      "accent": [
+        "#b45309",
+        "#fde68a"
+      ]
+    },
+    {
+      "id": "power-aura",
+      "name": "Power Aura",
+      "description": "A blazing golden aura powers up from the edge with crackling lightning and speed lines, then erupts.",
+      "category": "anime",
+      "defaultDuration": 5000,
+      "minDuration": 3000,
+      "maxDuration": 10000,
+      "defaultIntensity": 0.85,
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
+      "hasSound": true,
+      "accent": [
+        "#f59e0b",
+        "#fef08a"
+      ]
+    },
+    {
+      "id": "cartoon-parade",
+      "name": "Cartoon Parade",
+      "description": "A band of bouncy cartoon critters hops across the bottom of your screen, popping hearts and stars.",
+      "category": "cartoon",
+      "defaultDuration": 7000,
+      "minDuration": 4000,
+      "maxDuration": 15000,
+      "defaultIntensity": 0.7,
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
+      "hasSound": true,
+      "accent": [
+        "#f472b6",
+        "#a3e635"
+      ]
+    },
+    {
+      "id": "event-horizon",
+      "name": "Event Horizon",
+      "description": "A black hole forms near the edge, its glowing disk warping light as it pulls in the stars around it.",
+      "category": "space",
+      "defaultDuration": 7000,
+      "minDuration": 3000,
+      "maxDuration": 15000,
+      "defaultIntensity": 0.75,
+      "renderer": {
+        "web": "webgl",
+        "flutter": "shader"
+      },
+      "supportedPlatforms": [
+        "macos",
+        "windows",
+        "linux",
+        "android",
+        "ios"
+      ],
+      "hasSound": true,
+      "accent": [
+        "#fb923c",
+        "#1e1b4b"
+      ]
     }
   ]
 }
