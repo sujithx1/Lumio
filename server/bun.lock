@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "synq-server",
+      "name": "lumio-server",
       "dependencies": {
         "ajv": "^8.20.0",
         "drizzle-orm": "^0.45.4",

@@ -1,4 +1,4 @@
-# Synq
+# Lumio
 
 Pair your computers and phones and send beautiful visual effects between them.
 
@@ -13,7 +13,7 @@ A device shows a QR code (or a short code), another device scans or types it, bo
 | Mobile app (Flutter) | ✅ iOS built and run in the Simulator. Android: code complete, not yet built (no SDK on the dev machine) |
 | Effects | ✅ 8 on desktop (WebGL + Canvas, synthesised sound), 8 on mobile (fragment shaders + CustomPainter, haptics) |
 | Local-network mode (mDNS, direct LAN) | ❌ Not built; everything goes through the relay |
-| Push notifications (APNs/FCM) | ❌ Not built; phones receive effects only while Synq is open |
+| Push notifications (APNs/FCM) | ❌ Not built; phones receive effects only while Lumio is open |
 | Packaging | ⚠️ Server Docker image only; app signing/notarisation not done |
 
 Details and design decisions: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [PROTOCOL](docs/PROTOCOL.md) · [DATABASE](docs/DATABASE.md) · [SECURITY](docs/SECURITY.md)
@@ -50,9 +50,9 @@ Then pair something with it:
 - **A second desktop device on the same Mac:** `make desktop-b` (separate identity, same dev server).
 - **A scripted device** (no second screen needed): `make sim ARGS=host` prints a code to type into an app; `make sim ARGS="send aurora"` sends an effect to everything it's paired with; `make sim ARGS=listen` receives and acknowledges effects.
 
-Android emulator: `cd mobile && flutter run --dart-define=SYNQ_SERVER_URL=http://10.0.2.2:8787`. A real phone needs the relay at an address it can reach; set it under **Devices → Relay server**.
+Android emulator: `cd mobile && flutter run --dart-define=LUMIO_SERVER_URL=http://10.0.2.2:8787`. A real phone needs the relay at an address it can reach; set it under **Devices → Relay server**.
 
-Deploying the relay: `docker build -f infrastructure/docker/server.Dockerfile -t synq-server .`, then run it with `DATABASE_URL` and `JWT_SECRET` behind a TLS-terminating proxy.
+Deploying the relay: `docker build -f infrastructure/docker/server.Dockerfile -t lumio-server .`, then run it with `DATABASE_URL` and `JWT_SECRET` behind a TLS-terminating proxy.
 
 ## Test
 

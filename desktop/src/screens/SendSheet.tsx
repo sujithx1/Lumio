@@ -133,7 +133,7 @@ export function SendSheet({ target, onClose }: { target: SendTarget | null; onCl
 
       {device && !device.online && (
         <p className="mt-5 flex items-center gap-2 rounded-lg bg-warning/10 px-3 py-2.5 text-[12px] text-warning">
-          <Icon name="alert" size={14} /> {device.name} is offline. Effects only play on devices that are online with Synq open.
+          <Icon name="alert" size={14} /> {device.name} is offline. Effects only play on devices that are online with Lumio open.
         </p>
       )}
       {error && <p className="mt-5 text-[13px] text-danger">{error}</p>}

@@ -114,7 +114,7 @@ function ShowCode() {
       <div className="rounded-xl bg-[#f4f5fb] p-3 shadow-[0_20px_60px_-20px_var(--color-accent)]">
         <QrCode size={session.qr.size} modules={session.qr.modules} />
       </div>
-      <p className="mt-5 text-[13px] text-fg-muted">Scan with Synq on your phone, or type this code on another computer</p>
+      <p className="mt-5 text-[13px] text-fg-muted">Scan with Lumio on your phone, or type this code on another computer</p>
       <p className="mt-2 font-mono text-[26px] font-semibold tracking-[0.18em] select-text">{session.code}</p>
       <p className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-fg-faint">
         <Spinner size={11} /> Waiting for the other device · {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}

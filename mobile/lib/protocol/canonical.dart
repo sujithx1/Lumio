@@ -1,4 +1,4 @@
-// RFC 8785 (JCS) canonical JSON for the value shapes Synq uses.
+// RFC 8785 (JCS) canonical JSON for the value shapes Lumio uses.
 // Must match server/src/protocol/canonical.ts and the Rust implementation byte for byte;
 // protocol/fixtures/signing/vectors.json enforces that (test/signing_vectors_test.dart).
 import 'dart:convert';
@@ -30,7 +30,7 @@ void _write(Object? value, StringBuffer out) {
       }
       out.write(']');
     case Map<String, dynamic> map:
-      // Keys Synq uses are ASCII, where code-unit order equals UTF-16 order.
+      // Keys Lumio uses are ASCII, where code-unit order equals UTF-16 order.
       final keys = map.keys.toList()..sort();
       out.write('{');
       for (var i = 0; i < keys.length; i++) {
@@ -49,7 +49,7 @@ void _write(Object? value, StringBuffer out) {
 String _number(double d) {
   if (!d.isFinite) throw ArgumentError('non-finite numbers cannot be canonicalized');
   if (d == d.truncateToDouble() && d.abs() < 1e21) return d.toInt().toString();
-  return d.toString(); // Dart's shortest round-trip form matches JS for the ranges Synq uses.
+  return d.toString(); // Dart's shortest round-trip form matches JS for the ranges Lumio uses.
 }
 
 /// Bytes a sender signs: canonical JSON of the message with `sig` removed.

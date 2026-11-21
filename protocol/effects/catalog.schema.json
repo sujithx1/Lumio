@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://synq.app/schemas/v1/catalog.schema.json",
+  "$id": "https://lumio.app/schemas/v1/catalog.schema.json",
   "title": "EffectCatalog",
   "description": "The trusted effect catalog shipped inside every client build. A receiver renders an effect only if its id is in this catalog AND the client has a renderer registered for it.",
   "type": "object",

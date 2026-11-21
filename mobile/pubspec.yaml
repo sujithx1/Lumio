@@ -1,5 +1,5 @@
-name: synq
-description: "Synq mobile: send and receive visual effects between your devices"
+name: lumio
+description: "Lumio mobile: send and receive visual effects between your devices"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

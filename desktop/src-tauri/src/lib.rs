@@ -11,7 +11,7 @@ use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{Emitter, Manager, RunEvent, WindowEvent};
 
-pub const EVENT_CHANNEL: &str = "synq://event";
+pub const EVENT_CHANNEL: &str = "lumio://event";
 
 fn platform() -> &'static str {
     match std::env::consts::OS {
@@ -21,9 +21,9 @@ fn platform() -> &'static str {
     }
 }
 
-/// `SYNQ_PROFILE` lets several instances (each its own device) run on one machine during development.
+/// `LUMIO_PROFILE` lets several instances (each its own device) run on one machine during development.
 fn profile() -> String {
-    let raw = std::env::var("SYNQ_PROFILE").unwrap_or_else(|_| "default".into());
+    let raw = std::env::var("LUMIO_PROFILE").unwrap_or_else(|_| "default".into());
     let clean: String = raw.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').take(32).collect();
     if clean.is_empty() { "default".into() } else { clean }
 }
@@ -35,14 +35,14 @@ fn device_name(profile: &str) -> String {
     name.chars().take(64).collect()
 }
 
-/// Uses the OS keychain unless `SYNQ_KEYSTORE=file` (or no keychain is available).
+/// Uses the OS keychain unless `LUMIO_KEYSTORE=file` (or no keychain is available).
 fn open_identity(app: &tauri::App, profile: &str) -> Result<Identity, String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join(profile);
     let file = FileStore::new(dir.join("identity.key"));
-    if std::env::var("SYNQ_KEYSTORE").as_deref() == Ok("file") {
+    if std::env::var("LUMIO_KEYSTORE").as_deref() == Ok("file") {
         return Identity::load_or_create(&file);
     }
-    let keychain = KeychainStore::new("app.synq.desktop", &format!("device-identity-{profile}"));
+    let keychain = KeychainStore::new("app.lumio.desktop", &format!("device-identity-{profile}"));
     match keychain.load() {
         Ok(_) => Identity::load_or_create(&keychain),
         Err(e) => {
@@ -74,7 +74,7 @@ pub fn run() {
         .setup(|app| {
             let profile = profile();
             let identity = Arc::new(open_identity(app, &profile)?);
-            let server_url = std::env::var("SYNQ_SERVER_URL").unwrap_or_else(|_| "http://localhost:8787".into());
+            let server_url = std::env::var("LUMIO_SERVER_URL").unwrap_or_else(|_| "http://localhost:8787".into());
             let app_version = app.package_info().version.to_string();
             let api = Arc::new(ApiClient::new(
                 &server_url,
@@ -83,7 +83,7 @@ pub fn run() {
             ));
             let (engine, mut events, outgoing) = Engine::new(api, identity);
             app.manage(commands::AppState::new(engine.clone(), platform(), app_version));
-            log::info!("Synq starting (profile {profile}, server {server_url})");
+            log::info!("Lumio starting (profile {profile}, server {server_url})");
 
             tauri::async_runtime::spawn(core::relay::run(engine, outgoing));
 
@@ -106,11 +106,11 @@ pub fn run() {
                 }
             });
 
-            // Tray: Synq keeps running (and receiving effects) when its window is closed.
-            let show = MenuItem::with_id(app, "show", "Open Synq", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "Quit Synq", true, None::<&str>)?;
+            // Tray: Lumio keeps running (and receiving effects) when its window is closed.
+            let show = MenuItem::with_id(app, "show", "Open Lumio", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "Quit Lumio", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &quit])?;
-            let mut tray = TrayIconBuilder::with_id("synq").tooltip("Synq").menu(&menu).show_menu_on_left_click(true);
+            let mut tray = TrayIconBuilder::with_id("lumio").tooltip("Lumio").menu(&menu).show_menu_on_left_click(true);
             if let Some(icon) = app.default_window_icon() {
                 tray = tray.icon(icon.clone());
             }
@@ -154,7 +154,7 @@ pub fn run() {
             commands::server_status,
         ])
         .build(tauri::generate_context!())
-        .expect("error while building Synq");
+        .expect("error while building Lumio");
 
     app.run(|app, event| {
         // macOS: clicking the Dock icon reopens the hidden window.

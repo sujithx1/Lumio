@@ -1,4 +1,4 @@
-//! HTTP client for the Synq server: challenge/response login and the REST API.
+//! HTTP client for the Lumio server: challenge/response login and the REST API.
 
 use super::identity::Identity;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -83,7 +83,7 @@ pub struct ApiError {
 
 impl ApiError {
     fn network(e: reqwest::Error) -> Self {
-        let message = if e.is_timeout() { "The Synq server did not respond in time." } else { "Can't reach the Synq server." };
+        let message = if e.is_timeout() { "The Lumio server did not respond in time." } else { "Can't reach the Lumio server." };
         Self { status: 0, code: "network".into(), message: message.into() }
     }
 
@@ -161,7 +161,7 @@ impl ApiClient {
         }
         let pk = self.identity.public_key();
         let challenge: Challenge = self.post_json("/v1/auth/challenge", &json!({ "publicKey": pk })).await?;
-        let signature = self.identity.sign(format!("synq-auth-v1|{}|{pk}", challenge.nonce).as_bytes());
+        let signature = self.identity.sign(format!("lumio-auth-v1|{}|{pk}", challenge.nonce).as_bytes());
         self.post_json(
             "/v1/auth/token",
             &json!({ "publicKey": pk, "nonce": challenge.nonce, "signature": signature, "device": self.device }),

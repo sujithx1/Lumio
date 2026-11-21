@@ -30,7 +30,7 @@ interface AuthDeps {
 /**
  * POST /v1/auth/challenge {publicKey}                         -> {nonce, expiresAt}
  * POST /v1/auth/token {publicKey, nonce, signature, device?}  -> {token, expiresAt, device}
- * Signing `synq-auth-v1|<nonce>|<publicKey>` proves key possession. Including `device`
+ * Signing `lumio-auth-v1|<nonce>|<publicKey>` proves key possession. Including `device`
  * ({name, platform, appVersion}) registers the key on first use.
  */
 export function authRoutes({ repo, tokens, challenges, rateLimitPerMinute = 30 }: AuthDeps) {

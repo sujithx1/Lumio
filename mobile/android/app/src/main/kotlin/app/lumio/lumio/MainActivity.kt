@@ -1,4 +1,4 @@
-package app.synq.synq
+package app.lumio.lumio
 
 import io.flutter.embedding.android.FlutterActivity
 

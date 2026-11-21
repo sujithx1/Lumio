@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:synq/core/identity.dart';
-import 'package:synq/protocol/canonical.dart';
-import 'package:synq/protocol/message.dart';
+import 'package:lumio/core/identity.dart';
+import 'package:lumio/protocol/canonical.dart';
+import 'package:lumio/protocol/message.dart';
 
 /// The same vectors the server (TypeScript) and desktop (Rust) tests use.
 void main() {

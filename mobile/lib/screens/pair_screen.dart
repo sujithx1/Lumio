@@ -31,7 +31,7 @@ class _PairScreenState extends State<PairScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _sub?.cancel();
-    _sub = SynqScope.read(context).events.listen((e) {
+    _sub = LumioScope.read(context).events.listen((e) {
       if (!mounted) return;
       switch (e) {
         case PairApprovedEvent(:final peer):
@@ -50,15 +50,15 @@ class _PairScreenState extends State<PairScreen> {
     super.dispose();
   }
 
-  /// Accepts `synq://pair?code=…&server=…` (from a QR code) or a bare code.
+  /// Accepts `lumio://pair?code=…&server=…` (from a QR code) or a bare code.
   Future<void> _claim(String input) async {
     if (_busy || _claimed != null) return;
-    final engine = SynqScope.read(context);
+    final engine = LumioScope.read(context);
     var code = input.trim();
     final uri = Uri.tryParse(code);
-    if (uri != null && uri.scheme == 'synq') {
+    if (uri != null && uri.scheme == 'lumio') {
       if (uri.host != 'pair' || uri.queryParameters['code'] == null) {
-        setState(() => _error = "That QR code isn't a Synq pairing code.");
+        setState(() => _error = "That QR code isn't a Lumio pairing code.");
         return;
       }
       final server = uri.queryParameters['server']?.replaceAll(RegExp(r'/+$'), '');
@@ -90,7 +90,7 @@ class _PairScreenState extends State<PairScreen> {
     if (_paired != null) {
       body = _Result(
         icon: Icons.check_rounded,
-        color: SynqColors.online,
+        color: LumioColors.online,
         title: 'Paired with ${_paired!.name}',
         body: 'You can now send effects to each other.',
         onDone: () => Navigator.of(context).pop(),
@@ -99,7 +99,7 @@ class _PairScreenState extends State<PairScreen> {
       body = _declined
           ? _Result(
               icon: Icons.close_rounded,
-              color: SynqColors.danger,
+              color: LumioColors.danger,
               title: '${_claimed!.initiator.name} declined',
               body: 'Nothing was paired.',
               onDone: () => Navigator.of(context).pop(),
@@ -111,11 +111,11 @@ class _PairScreenState extends State<PairScreen> {
                   'Confirm on ${_claimed!.initiator.name}',
                   style: text.titleLarge?.copyWith(fontWeight: FontWeight.w600),
                 ),
-                const SizedBox(height: SynqSpace.xs),
+                const SizedBox(height: LumioSpace.xs),
                 Text('It should show this number:', style: text.bodySmall),
-                const SizedBox(height: SynqSpace.xl),
+                const SizedBox(height: LumioSpace.xl),
                 SasDigits(_claimed!.sas),
-                const SizedBox(height: SynqSpace.xl),
+                const SizedBox(height: LumioSpace.xl),
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -141,7 +141,7 @@ class _PairScreenState extends State<PairScreen> {
               _error = null;
             }),
           ),
-          const SizedBox(height: SynqSpace.xl),
+          const SizedBox(height: LumioSpace.xl),
           Expanded(
             child: switch (_mode) {
               0 => _Scanner(onCode: _claim, busy: _busy),
@@ -151,10 +151,10 @@ class _PairScreenState extends State<PairScreen> {
           ),
           if (_error != null)
             Padding(
-              padding: const EdgeInsets.only(top: SynqSpace.md),
+              padding: const EdgeInsets.only(top: LumioSpace.md),
               child: Text(
                 _error!,
-                style: const TextStyle(color: SynqColors.danger),
+                style: const TextStyle(color: LumioColors.danger),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -166,7 +166,7 @@ class _PairScreenState extends State<PairScreen> {
       appBar: AppBar(title: const Text('Pair a device'), backgroundColor: Colors.transparent),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(SynqSpace.xl),
+          padding: const EdgeInsets.all(LumioSpace.xl),
           child: Center(child: body),
         ),
       ),
@@ -184,15 +184,15 @@ class _Scanner extends StatelessWidget {
     children: [
       Expanded(
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(SynqRadius.xl),
+          borderRadius: BorderRadius.circular(LumioRadius.xl),
           child: MobileScanner(
             onDetect: (capture) {
               final value = capture.barcodes.map((b) => b.rawValue).whereType<String>().firstOrNull;
               if (value != null && !busy) onCode(value);
             },
             errorBuilder: (_, error) => Container(
-              color: SynqColors.surface,
-              padding: const EdgeInsets.all(SynqSpace.xl),
+              color: LumioColors.surface,
+              padding: const EdgeInsets.all(LumioSpace.xl),
               alignment: Alignment.center,
               child: Text(
                 error.errorCode == MobileScannerErrorCode.permissionDenied
@@ -204,8 +204,8 @@ class _Scanner extends StatelessWidget {
           ),
         ),
       ),
-      const SizedBox(height: SynqSpace.md),
-      Text('Point at the QR code in Synq on your computer.', style: Theme.of(context).textTheme.bodySmall),
+      const SizedBox(height: LumioSpace.md),
+      Text('Point at the QR code in Lumio on your computer.', style: Theme.of(context).textTheme.bodySmall),
     ],
   );
 }
@@ -246,7 +246,7 @@ class _EnterCodeState extends State<_EnterCode> {
           onChanged: (_) => setState(() {}),
           onSubmitted: widget.onSubmit,
         ),
-        const SizedBox(height: SynqSpace.xl),
+        const SizedBox(height: LumioSpace.xl),
         FilledButton(
           onPressed: clean.length == 10 && !widget.busy ? () => widget.onSubmit(_controller.text) : null,
           child: widget.busy
@@ -278,7 +278,7 @@ class _ShowCodeState extends State<_ShowCode> {
   }
 
   Future<void> _start() async {
-    final engine = SynqScope.read(context);
+    final engine = LumioScope.read(context);
     setState(() {
       _session = null;
       _error = null;
@@ -314,20 +314,20 @@ class _ShowCodeState extends State<_ShowCode> {
       );
     }
     final uri = Uri(
-      scheme: 'synq',
+      scheme: 'lumio',
       host: 'pair',
-      queryParameters: {'code': s.code, 'server': SynqScope.read(context).api.baseUrl},
+      queryParameters: {'code': s.code, 'server': LumioScope.read(context).api.baseUrl},
     );
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(SynqSpace.md),
-          decoration: BoxDecoration(color: SynqColors.text, borderRadius: BorderRadius.circular(SynqRadius.lg)),
+          padding: const EdgeInsets.all(LumioSpace.md),
+          decoration: BoxDecoration(color: LumioColors.text, borderRadius: BorderRadius.circular(LumioRadius.lg)),
           child: QrImageView(data: uri.toString(), size: 200, padding: EdgeInsets.zero),
         ),
-        const SizedBox(height: SynqSpace.xl),
+        const SizedBox(height: LumioSpace.xl),
         Text(s.code, style: const TextStyle(fontSize: 26, letterSpacing: 4, fontWeight: FontWeight.w600)),
-        const SizedBox(height: SynqSpace.sm),
+        const SizedBox(height: LumioSpace.sm),
         Text(
           'Waiting for the other device · ${remaining ~/ 60}:${(remaining % 60).toString().padLeft(2, '0')}',
           style: text.bodySmall,
@@ -362,15 +362,15 @@ class _Result extends StatelessWidget {
           backgroundColor: color.withValues(alpha: 0.15),
           child: Icon(icon, color: color, size: 30),
         ),
-        const SizedBox(height: SynqSpace.lg),
+        const SizedBox(height: LumioSpace.lg),
         Text(
           title,
           style: text.titleLarge?.copyWith(fontWeight: FontWeight.w600),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: SynqSpace.xs),
+        const SizedBox(height: LumioSpace.xs),
         Text(body, style: text.bodySmall),
-        const SizedBox(height: SynqSpace.xl),
+        const SizedBox(height: LumioSpace.xl),
         FilledButton(onPressed: onDone, child: const Text('Done')),
       ],
     );

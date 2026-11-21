@@ -11,7 +11,7 @@ class DevicesScreen extends StatelessWidget {
   final Future<void> Function(String url)? onChangeServer;
 
   Future<void> _rename(BuildContext context) async {
-    final engine = SynqScope.read(context);
+    final engine = LumioScope.read(context);
     final name = await _prompt(context, 'Rename this device', engine.me?.name ?? '', maxLength: 64);
     if (name == null || name.trim().isEmpty || !context.mounted) return;
     try {
@@ -22,7 +22,7 @@ class DevicesScreen extends StatelessWidget {
   }
 
   Future<void> _server(BuildContext context) async {
-    final engine = SynqScope.read(context);
+    final engine = LumioScope.read(context);
     final url = await _prompt(context, 'Relay server', engine.api.baseUrl, keyboard: TextInputType.url);
     if (url == null || !context.mounted) return;
     final uri = Uri.tryParse(url.trim());
@@ -44,7 +44,7 @@ class DevicesScreen extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(c, true),
-            style: TextButton.styleFrom(foregroundColor: SynqColors.danger),
+            style: TextButton.styleFrom(foregroundColor: LumioColors.danger),
             child: const Text('Remove'),
           ),
         ],
@@ -52,7 +52,7 @@ class DevicesScreen extends StatelessWidget {
     );
     if (ok != true || !context.mounted) return;
     try {
-      await SynqScope.read(context).unpair(p.deviceId);
+      await LumioScope.read(context).unpair(p.deviceId);
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
@@ -60,15 +60,15 @@ class DevicesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final engine = SynqScope.of(context);
+    final engine = LumioScope.of(context);
     final text = Theme.of(context).textTheme;
     final (color, label) = connectionLook(engine.connection);
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(SynqSpace.xl, SynqSpace.lg, SynqSpace.xl, SynqSpace.xxxl),
+        padding: const EdgeInsets.fromLTRB(LumioSpace.xl, LumioSpace.lg, LumioSpace.xl, LumioSpace.xxxl),
         children: [
           Text('Devices', style: text.headlineMedium),
-          const SizedBox(height: SynqSpace.xxl),
+          const SizedBox(height: LumioSpace.xxl),
           const SectionTitle('This device'),
           Card(
             child: Column(
@@ -106,7 +106,7 @@ class DevicesScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: SynqSpace.xxl),
+          const SizedBox(height: LumioSpace.xxl),
           SectionTitle(
             'Paired devices${engine.peers.isEmpty ? '' : ' · ${engine.peers.length}'}',
             trailing: TextButton.icon(

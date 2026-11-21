@@ -77,11 +77,11 @@ pub struct PairingSession {
     qr: QrMatrix,
 }
 
-/// Starts pairing: returns a one-time code and the QR matrix encoding `synq://pair?...`.
+/// Starts pairing: returns a one-time code and the QR matrix encoding `lumio://pair?...`.
 #[tauri::command]
 pub async fn create_pairing(state: State<'_, AppState>) -> CmdResult<PairingSession> {
     let created = state.engine.api().create_pairing().await.map_err(|e| e.message)?;
-    let mut uri = url::Url::parse("synq://pair").map_err(|e| e.to_string())?;
+    let mut uri = url::Url::parse("lumio://pair").map_err(|e| e.to_string())?;
     uri.query_pairs_mut().append_pair("code", &created.code).append_pair("server", state.engine.api().base_url());
     let qr = qrcode::QrCode::with_error_correction_level(uri.as_str(), qrcode::EcLevel::M).map_err(|e| e.to_string())?;
     let size = qr.width();

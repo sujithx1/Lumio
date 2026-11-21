@@ -1,22 +1,22 @@
 # Local development services. Not for production.
-name: synq
+name: lumio
 services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: synq
+      POSTGRES_USER: lumio
       # Dev-only default; override with POSTGRES_PASSWORD in your shell or a .env next to this file.
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-synq_dev}
-      POSTGRES_DB: synq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lumio_dev}
+      POSTGRES_DB: lumio
     ports:
       - "127.0.0.1:5442:5432"
     volumes:
-      - synq-pg:/var/lib/postgresql/data
+      - lumio-pg:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U synq -d synq"]
+      test: ["CMD-SHELL", "pg_isready -U lumio -d lumio"]
       interval: 2s
       timeout: 3s
       retries: 20
 volumes:
-  synq-pg:
+  lumio-pg:

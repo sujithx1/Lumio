@@ -60,9 +60,9 @@ describe.skipIf(!url)("relay end-to-end (integration)", () => {
       const post = (path: string, body: unknown) =>
         fetch(`${base}${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
       const { nonce } = (await (await post("/v1/auth/challenge", { publicKey: d.keys.publicKey })).json()) as { nonce: string };
-      const badSig = d.keys.sign(new TextEncoder().encode(`synq-auth-v1|wrong|${d.keys.publicKey}`));
+      const badSig = d.keys.sign(new TextEncoder().encode(`lumio-auth-v1|wrong|${d.keys.publicKey}`));
       expect((await post("/v1/auth/token", { publicKey: d.keys.publicKey, nonce, signature: badSig })).status).toBe(401);
-      const goodSig = d.keys.sign(new TextEncoder().encode(`synq-auth-v1|${nonce}|${d.keys.publicKey}`));
+      const goodSig = d.keys.sign(new TextEncoder().encode(`lumio-auth-v1|${nonce}|${d.keys.publicKey}`));
       // The nonce was consumed by the failed attempt.
       expect((await post("/v1/auth/token", { publicKey: d.keys.publicKey, nonce, signature: goodSig })).status).toBe(401);
     });

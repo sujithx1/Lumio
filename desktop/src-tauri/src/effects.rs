@@ -47,7 +47,7 @@ impl Effects {
         let label = format!("{WINDOW_PREFIX}{}", self.counter.fetch_add(1, Ordering::Relaxed));
         self.launches.lock().unwrap().insert(label.clone(), launch);
         let built = WebviewWindowBuilder::new(app, &label, WebviewUrl::App("index.html".into()))
-            .title("Synq")
+            .title("Lumio")
             .decorations(false)
             .fullscreen(true)
             .always_on_top(true)

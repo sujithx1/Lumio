@@ -1,6 +1,6 @@
-# synq
+# lumio
 
-Synq mobile: send and receive visual effects between your devices
+Lumio mobile: send and receive visual effects between your devices
 
 ## Getting Started
 

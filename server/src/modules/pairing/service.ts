@@ -9,7 +9,7 @@ import type { Presence } from "../presence/presence";
 
 export const PAIRING_TTL_MS = 120_000;
 
-const hashCode = (normalized: string) => sha256Hex(`synq-pair-v1|${normalized}`);
+const hashCode = (normalized: string) => sha256Hex(`lumio-pair-v1|${normalized}`);
 
 /**
  * QR / typed-code pairing.
@@ -81,7 +81,7 @@ export function createPairingService(deps: { db: Database; repo: DeviceRepo; pre
       if (!initiator) throw invalid;
       if (await repo.isPaired(initiator.id, claimant.id)) throw new HttpError(409, "conflict", "these devices are already paired");
       if (!presence.isOnline(initiator.id)) {
-        throw new HttpError(409, "conflict", "the other device is offline; keep Synq open on it and try again");
+        throw new HttpError(409, "conflict", "the other device is offline; keep Lumio open on it and try again");
       }
 
       // Atomic pending -> claimed so a code can only be claimed once.

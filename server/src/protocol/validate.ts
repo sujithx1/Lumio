@@ -6,7 +6,7 @@ import {
   MAX_FRAME_BYTES,
   MAX_MESSAGE_LIFETIME_MS,
   type MessageType,
-  type SynqMessage,
+  type LumioMessage,
 } from "./types";
 
 export type ParseErrorCode =
@@ -19,7 +19,7 @@ export type ParseErrorCode =
   | "self_addressed";
 
 export type ParseResult =
-  | { ok: true; message: SynqMessage }
+  | { ok: true; message: LumioMessage }
   | { ok: false; code: ParseErrorCode; detail: string };
 
 const TYPE_TO_DEF = schema.$defs.MessageTypes.const as Record<MessageType, string>;
@@ -75,14 +75,14 @@ export function parseMessage(input: string | unknown): ParseResult {
   }
   if (envelope.from === envelope.to) return fail("self_addressed", "from and to must differ");
 
-  return { ok: true, message: value as SynqMessage };
+  return { ok: true, message: value as LumioMessage };
 }
 
 export type FreshnessResult = { ok: true } | { ok: false; reason: "expired" | "from_future" };
 
 /** Rejects messages that have expired or claim to be created in the future, allowing for clock skew. */
 export function checkFreshness(
-  message: Pick<SynqMessage, "createdAt" | "expiresAt">,
+  message: Pick<LumioMessage, "createdAt" | "expiresAt">,
   now: number,
   skew: number = MAX_CLOCK_SKEW_MS,
 ): FreshnessResult {

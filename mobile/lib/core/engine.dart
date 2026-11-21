@@ -15,7 +15,7 @@ import '../protocol/message.dart' hide DeviceSummary;
 import 'api.dart';
 import 'identity.dart';
 
-enum SynqConnection { connecting, online, offline, revoked }
+enum LumioConnection { connecting, online, offline, revoked }
 
 class IncomingEffect {
   const IncomingEffect({
@@ -93,15 +93,15 @@ const _heartbeatTimeout = Duration(seconds: 45);
 const _closeReplaced = 4002;
 const _closeRevoked = 4003;
 
-class SynqEngine extends ChangeNotifier {
-  SynqEngine({required this.api, required this.identity, required this.catalog});
+class LumioEngine extends ChangeNotifier {
+  LumioEngine({required this.api, required this.identity, required this.catalog});
 
   final ApiClient api;
   final Identity identity;
   final EffectCatalog catalog;
 
   DeviceSummary? me;
-  SynqConnection connection = SynqConnection.connecting;
+  LumioConnection connection = LumioConnection.connecting;
   String? connectionDetail;
   final Map<String, PeerRecord> _peers = {};
   List<RecentEffect> recent = const [];
@@ -120,17 +120,17 @@ class SynqEngine extends ChangeNotifier {
 
   List<PeerRecord> get peers =>
       _peers.values.toList()..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-  bool get isOnline => connection == SynqConnection.online;
+  bool get isOnline => connection == LumioConnection.online;
 
   void _emit(CoreEvent e) {
     if (!_events.isClosed) _events.add(e);
   }
 
-  void _setConnection(SynqConnection state, [String? detail]) {
+  void _setConnection(LumioConnection state, [String? detail]) {
     if (connection == state && connectionDetail == detail) return;
     connection = state;
     connectionDetail = detail;
-    if (state != SynqConnection.online) {
+    if (state != LumioConnection.online) {
       for (final p in _peers.values) {
         p.online = false;
       }
@@ -161,7 +161,7 @@ class SynqEngine extends ChangeNotifier {
     var backoff = const Duration(seconds: 1);
     final rng = math.Random();
     while (_running) {
-      _setConnection(SynqConnection.connecting);
+      _setConnection(LumioConnection.connecting);
       final started = DateTime.now();
       final outcome = await _connectOnce();
       if (DateTime.now().difference(started) > const Duration(seconds: 60)) backoff = const Duration(seconds: 1);
@@ -169,14 +169,14 @@ class SynqEngine extends ChangeNotifier {
       Duration wait;
       switch (outcome) {
         case _Outcome.revoked:
-          _setConnection(SynqConnection.revoked, 'This device was removed from Synq.');
+          _setConnection(LumioConnection.revoked, 'This device was removed from Lumio.');
           _running = false;
           return;
         case _Outcome.replaced:
-          _setConnection(SynqConnection.offline, 'Synq is open elsewhere with this identity.');
+          _setConnection(LumioConnection.offline, 'Lumio is open elsewhere with this identity.');
           wait = const Duration(seconds: 30);
         case _Outcome.dropped:
-          _setConnection(SynqConnection.offline, connectionDetail ?? 'Disconnected.');
+          _setConnection(LumioConnection.offline, connectionDetail ?? 'Disconnected.');
           wait = backoff;
       }
       _wake = Completer<void>();
@@ -232,7 +232,7 @@ class SynqEngine extends ChangeNotifier {
           }
           authed = true;
           authTimer.cancel();
-          _setConnection(SynqConnection.online);
+          _setConnection(LumioConnection.online);
           heartbeat = Timer.periodic(_heartbeatInterval, (_) {
             if (DateTime.now().difference(lastFrame) > _heartbeatTimeout) {
               connectionDetail = 'The relay stopped responding.';
@@ -334,7 +334,7 @@ class SynqEngine extends ChangeNotifier {
     final spec = catalog.byId(effectId);
     if (spec == null) throw StateError('Unknown effect.');
     if (!_peers.containsKey(to)) throw StateError('That device is not paired.');
-    if (!isOnline) throw StateError("You're offline. Effects can be sent once Synq reconnects.");
+    if (!isOnline) throw StateError("You're offline. Effects can be sent once Lumio reconnects.");
     final msg = await _signed('EFFECT_TRIGGER', to, {
       'effectId': effectId,
       'duration': duration.clamp(spec.minDuration, spec.maxDuration),
@@ -378,7 +378,7 @@ class SynqEngine extends ChangeNotifier {
 
   /// Handles one raw frame from the relay (or, later, a LAN peer).
   Future<void> handleFrame(String frame) async {
-    final SynqMessage msg;
+    final LumioMessage msg;
     final Map<String, dynamic> raw;
     try {
       msg = parseMessage(frame);
@@ -442,7 +442,7 @@ class SynqEngine extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<PeerRecord?> _verifiedPeer(SynqMessage msg, Map<String, dynamic> raw) async {
+  Future<PeerRecord?> _verifiedPeer(LumioMessage msg, Map<String, dynamic> raw) async {
     final peer = _peers[msg.from];
     final sig = msg.sig;
     if (peer == null || sig == null) return null;
@@ -457,7 +457,7 @@ class SynqEngine extends ChangeNotifier {
     return true;
   }
 
-  Future<void> _handleTrigger(SynqMessage msg, Map<String, dynamic> raw) async {
+  Future<void> _handleTrigger(LumioMessage msg, Map<String, dynamic> raw) async {
     final body = msg.body as EffectTriggerBody;
     if (msg.to != me?.deviceId) return;
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -501,7 +501,7 @@ class SynqEngine extends ChangeNotifier {
   }
 
   Future<void> _handleAck(
-    SynqMessage msg,
+    LumioMessage msg,
     Map<String, dynamic> raw,
     String eventId,
     String status, [

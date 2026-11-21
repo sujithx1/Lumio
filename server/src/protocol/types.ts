@@ -92,7 +92,7 @@ export type ErrorMessage = Envelope<"ERROR", { code: ErrorCode; message: string;
   from: "server";
 };
 
-export type SynqMessage =
+export type LumioMessage =
   | AuthMessage
   | AuthOkMessage
   | HeartbeatMessage
@@ -109,4 +109,4 @@ export type SynqMessage =
   | EffectStatusMessage
   | ErrorMessage;
 
-export type MessageType = SynqMessage["type"];
+export type MessageType = LumioMessage["type"];

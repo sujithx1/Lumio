@@ -63,7 +63,7 @@ export function Button({
   busy?: boolean;
 }) {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-[13px] font-medium transition duration-fast ease-synq disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+    "inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-[13px] font-medium transition duration-fast ease-lumio disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
   const styles = {
     primary: "bg-gradient-to-b from-accent to-[#6346f0] text-white shadow-[0_8px_24px_-8px_var(--color-accent)] hover:brightness-110",
     ghost: "bg-surface-raised text-fg hairline hover:bg-white/5",
@@ -162,7 +162,7 @@ export function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="synq-range w-full"
+        className="lumio-range w-full"
         style={{ background: `linear-gradient(90deg, var(--color-accent) ${pct}%, var(--color-surface-raised) ${pct}%)` }}
       />
     </label>
@@ -179,10 +179,10 @@ export function Toggle({ label, checked, onChange, disabled }: { label: string; 
         aria-checked={checked}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative h-6 w-10 rounded-pill transition duration-base ease-synq ${checked ? "bg-accent" : "bg-surface-raised hairline"}`}
+        className={`relative h-6 w-10 rounded-pill transition duration-base ease-lumio ${checked ? "bg-accent" : "bg-surface-raised hairline"}`}
       >
         <span
-          className={`absolute top-1 h-4 w-4 rounded-pill bg-white shadow transition-all duration-base ease-synq ${checked ? "left-5" : "left-1"}`}
+          className={`absolute top-1 h-4 w-4 rounded-pill bg-white shadow transition-all duration-base ease-lumio ${checked ? "left-5" : "left-1"}`}
         />
       </button>
     </label>

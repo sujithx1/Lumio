@@ -172,8 +172,8 @@ final class ErrorBody extends Body {
 }
 
 /// A validated protocol message.
-class SynqMessage {
-  const SynqMessage({
+class LumioMessage {
+  const LumioMessage({
     required this.id,
     required this.from,
     required this.to,
@@ -193,7 +193,7 @@ class SynqMessage {
 }
 
 /// Parses and validates an untrusted raw frame.
-SynqMessage parseMessage(String frame) {
+LumioMessage parseMessage(String frame) {
   if (utf8.encode(frame).length > maxFrameBytes) {
     throw const ProtocolException(ParseErrorCode.frameTooLarge, 'frame exceeds $maxFrameBytes bytes');
   }
@@ -209,7 +209,7 @@ SynqMessage parseMessage(String frame) {
 const _envelopeRequired = {'v', 'id', 'type', 'from', 'to', 'createdAt', 'expiresAt', 'payload'};
 
 /// Validates an already-decoded JSON value. Same rules as [parseMessage] minus the size check.
-SynqMessage parseValue(Object? value) {
+LumioMessage parseValue(Object? value) {
   const env = ParseErrorCode.invalidEnvelope;
   if (_containsNull(value)) throw const ProtocolException(env, 'null is not a valid value anywhere in a message');
   final e = _Obj(value, 'message', env)..keys(_envelopeRequired, optional: {'sig'});
@@ -235,7 +235,7 @@ SynqMessage parseValue(Object? value) {
   }
   if (from == to) throw const ProtocolException(ParseErrorCode.selfAddressed, 'from and to must differ');
 
-  return SynqMessage(id: id, from: from, to: to, createdAt: createdAt, expiresAt: expiresAt, sig: sig, body: body);
+  return LumioMessage(id: id, from: from, to: to, createdAt: createdAt, expiresAt: expiresAt, sig: sig, body: body);
 }
 
 Body _parseBody(String type, String from, String to, String? sig, _Obj p) {

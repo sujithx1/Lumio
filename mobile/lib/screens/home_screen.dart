@@ -14,7 +14,7 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final engine = SynqScope.of(context);
+    final engine = LumioScope.of(context);
     final text = Theme.of(context).textTheme;
     final peers = engine.peers;
     final (color, label) = connectionLook(engine.connection);
@@ -26,11 +26,11 @@ class HomeScreen extends StatelessWidget {
           await Future.wait([engine.refreshPeers().catchError((_) {}), engine.refreshRecent()]);
         },
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(SynqSpace.xl, SynqSpace.lg, SynqSpace.xl, SynqSpace.xxxl),
+          padding: const EdgeInsets.fromLTRB(LumioSpace.xl, LumioSpace.lg, LumioSpace.xl, LumioSpace.xxxl),
           children: [
             Row(
               children: [
-                Expanded(child: Text('Synq', style: text.headlineMedium)),
+                Expanded(child: Text('Lumio', style: text.headlineMedium)),
                 IconButton.filledTonal(
                   onPressed: engine.isOnline ? onPair : null,
                   icon: const Icon(Icons.add_link_rounded),
@@ -38,16 +38,16 @@ class HomeScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: SynqSpace.xl),
+            const SizedBox(height: LumioSpace.xl),
             Container(
-              padding: const EdgeInsets.all(SynqSpace.xl),
+              padding: const EdgeInsets.all(LumioSpace.xl),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(SynqRadius.xl),
-                border: Border.all(color: SynqColors.border),
+                borderRadius: BorderRadius.circular(LumioRadius.xl),
+                border: Border.all(color: LumioColors.border),
                 gradient: RadialGradient(
                   center: const Alignment(0.9, -1.2),
                   radius: 1.4,
-                  colors: [SynqColors.accent.withValues(alpha: 0.35), SynqColors.surface],
+                  colors: [LumioColors.accent.withValues(alpha: 0.35), LumioColors.surface],
                 ),
               ),
               child: Row(
@@ -56,15 +56,15 @@ class HomeScreen extends StatelessWidget {
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: SynqColors.surfaceRaised,
-                      borderRadius: BorderRadius.circular(SynqRadius.md),
-                      border: Border.all(color: SynqColors.border),
+                      color: LumioColors.surfaceRaised,
+                      borderRadius: BorderRadius.circular(LumioRadius.md),
+                      border: Border.all(color: LumioColors.border),
                     ),
                     child: Icon(
                       Platform.isIOS || Platform.isAndroid ? Icons.smartphone_rounded : Icons.devices_rounded,
                     ),
                   ),
-                  const SizedBox(width: SynqSpace.lg),
+                  const SizedBox(width: LumioSpace.lg),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,11 +76,11 @@ class HomeScreen extends StatelessWidget {
                           style: text.titleMedium,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: SynqSpace.xs),
+                        const SizedBox(height: LumioSpace.xs),
                         Row(
                           children: [
                             StatusDot(color: color, size: 7),
-                            const SizedBox(width: SynqSpace.sm),
+                            const SizedBox(width: LumioSpace.sm),
                             Flexible(child: Text(label, style: text.bodySmall)),
                           ],
                         ),
@@ -90,7 +90,7 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: SynqSpace.xxl),
+            const SizedBox(height: LumioSpace.xxl),
             const SectionTitle('Your devices'),
             if (peers.isEmpty)
               EmptyCard(
@@ -106,10 +106,10 @@ class HomeScreen extends StatelessWidget {
             else
               for (final p in peers)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: SynqSpace.sm),
+                  padding: const EdgeInsets.only(bottom: LumioSpace.sm),
                   child: Card(
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: SynqSpace.lg, vertical: SynqSpace.xs),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: LumioSpace.lg, vertical: LumioSpace.xs),
                       leading: Stack(
                         clipBehavior: Clip.none,
                         children: [
@@ -117,7 +117,7 @@ class HomeScreen extends StatelessWidget {
                           Positioned(
                             right: -2,
                             bottom: -2,
-                            child: StatusDot(color: p.online ? SynqColors.online : SynqColors.offline, size: 8),
+                            child: StatusDot(color: p.online ? LumioColors.online : LumioColors.offline, size: 8),
                           ),
                         ],
                       ),
@@ -137,14 +137,14 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-            const SizedBox(height: SynqSpace.xxl),
+            const SizedBox(height: LumioSpace.xxl),
             const SectionTitle('Quick effects'),
             SizedBox(
               height: 128,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: engine.catalog.effects.length,
-                separatorBuilder: (_, _) => const SizedBox(width: SynqSpace.md),
+                separatorBuilder: (_, _) => const SizedBox(width: LumioSpace.md),
                 itemBuilder: (_, i) {
                   final e = engine.catalog.effects[i];
                   return SizedBox(
@@ -158,7 +158,7 @@ class HomeScreen extends StatelessWidget {
                           children: [
                             EffectSwatch(effect: e, height: 84),
                             Padding(
-                              padding: const EdgeInsets.all(SynqSpace.sm),
+                              padding: const EdgeInsets.all(LumioSpace.sm),
                               child: Text(
                                 e.name,
                                 style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -173,7 +173,7 @@ class HomeScreen extends StatelessWidget {
                 },
               ),
             ),
-            const SizedBox(height: SynqSpace.xxl),
+            const SizedBox(height: LumioSpace.xxl),
             const SectionTitle('Recent effects'),
             if (engine.recent.isEmpty)
               const EmptyCard(
@@ -190,7 +190,7 @@ class HomeScreen extends StatelessWidget {
                         dense: true,
                         leading: Icon(
                           r.direction == 'sent' ? Icons.north_east_rounded : Icons.south_west_rounded,
-                          color: r.direction == 'sent' ? SynqColors.accent : SynqColors.accentAlt,
+                          color: r.direction == 'sent' ? LumioColors.accent : LumioColors.accentAlt,
                           size: 18,
                         ),
                         title: Text(

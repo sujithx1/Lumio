@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Synq",
+  "productName": "Lumio",
   "version": "0.1.0",
-  "identifier": "app.synq.desktop",
+  "identifier": "app.lumio.desktop",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Synq",
+        "title": "Lumio",
         "width": 1180,
         "height": 760,
         "minWidth": 880,

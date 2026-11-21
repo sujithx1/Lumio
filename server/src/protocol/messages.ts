@@ -1,4 +1,4 @@
-import type { MessageType, SynqMessage } from "./types";
+import type { MessageType, LumioMessage } from "./types";
 
 const SERVER_MESSAGE_TTL_MS = 30_000;
 
@@ -6,9 +6,9 @@ const SERVER_MESSAGE_TTL_MS = 30_000;
 export function serverMessage<T extends MessageType>(
   type: T,
   to: string,
-  payload: Extract<SynqMessage, { type: T }>["payload"],
+  payload: Extract<LumioMessage, { type: T }>["payload"],
   now: number = Date.now(),
-): Extract<SynqMessage, { type: T }> {
+): Extract<LumioMessage, { type: T }> {
   return {
     v: 1,
     id: Bun.randomUUIDv7(),
@@ -18,5 +18,5 @@ export function serverMessage<T extends MessageType>(
     createdAt: now,
     expiresAt: now + SERVER_MESSAGE_TTL_MS,
     payload,
-  } as Extract<SynqMessage, { type: T }>;
+  } as Extract<LumioMessage, { type: T }>;
 }

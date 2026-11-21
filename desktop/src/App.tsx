@@ -46,7 +46,7 @@ export default function App() {
             <div className="absolute inset-[5px] rounded-pill bg-bg" />
             <div className="absolute inset-[9px] rounded-pill bg-gradient-to-br from-accent to-accent-alt" />
           </div>
-          <span className="text-[17px] font-semibold tracking-tight">Synq</span>
+          <span className="text-[17px] font-semibold tracking-tight">Lumio</span>
         </div>
 
         <nav className="flex flex-col gap-0.5 px-3">
@@ -57,7 +57,7 @@ export default function App() {
                 key={item.id}
                 type="button"
                 onClick={() => setScreen(item.id)}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-[13px] transition duration-fast ease-synq ${
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-[13px] transition duration-fast ease-lumio ${
                   active ? "bg-white/[0.07] text-fg" : "text-fg-muted hover:bg-white/[0.04] hover:text-fg"
                 }`}
               >

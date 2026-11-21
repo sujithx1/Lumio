@@ -18,7 +18,7 @@ for (const [k, v] of Object.entries<number>(tokens.radius)) lines.push(`  --radi
 lines.push(
   `  --font-sans: "${tokens.font.family}", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;`,
   `  --font-mono: "${tokens.font.monoFamily}", ui-monospace, SFMono-Regular, Menlo, monospace;`,
-  `  --ease-synq: cubic-bezier(${tokens.motion.easing.join(", ")});`,
+  `  --ease-lumio: cubic-bezier(${tokens.motion.easing.join(", ")});`,
   `  --duration-fast: ${tokens.motion.durationFast}ms;`,
   `  --duration-base: ${tokens.motion.durationBase}ms;`,
   `  --duration-slow: ${tokens.motion.durationSlow}ms;`,

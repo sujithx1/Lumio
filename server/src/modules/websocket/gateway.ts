@@ -2,7 +2,7 @@ import type { Server, ServerWebSocket } from "bun";
 import type { Logger } from "../../lib/logger";
 import { RateLimiter } from "../../lib/ratelimit";
 import { serverMessage } from "../../protocol/messages";
-import { MAX_FRAME_BYTES, type ErrorCode, type SynqMessage } from "../../protocol/types";
+import { MAX_FRAME_BYTES, type ErrorCode, type LumioMessage } from "../../protocol/types";
 import { checkFreshness, parseMessage } from "../../protocol/validate";
 import type { TokenService } from "../auth/service";
 import type { DeviceRepo } from "../devices/repo";
@@ -16,7 +16,7 @@ export interface WsData {
   authTimer?: ReturnType<typeof setTimeout>;
 }
 
-export type SynqSocket = ServerWebSocket<WsData>;
+export type LumioSocket = ServerWebSocket<WsData>;
 
 /** Close codes (4000-4999 are application-defined). Clients reconnect on all except 4003. */
 export const CLOSE = {
@@ -47,11 +47,11 @@ interface GatewayDeps {
  * 3. EFFECT_* messages are validated, checked against the authenticated identity and routed.
  */
 export function createGateway({ presence, repo, tokens, router, logger }: GatewayDeps) {
-  const sockets = new Set<SynqSocket>();
+  const sockets = new Set<LumioSocket>();
   const floodLimiter = new RateLimiter(40, 10_000);
   const lastSeenWrites = new Map<string, number>();
 
-  const sendError = (ws: SynqSocket, code: ErrorCode, message: string, refId?: string) => {
+  const sendError = (ws: LumioSocket, code: ErrorCode, message: string, refId?: string) => {
     const to = ws.data.deviceId ?? "server";
     if (to === "server") return;
     ws.send(JSON.stringify(serverMessage("ERROR", to, refId ? { code, message, refId } : { code, message })));
@@ -68,7 +68,7 @@ export function createGateway({ presence, repo, tokens, router, logger }: Gatewa
     await repo.update(deviceId, { lastSeenAt: new Date(now) });
   };
 
-  async function authenticate(ws: SynqSocket, msg: SynqMessage) {
+  async function authenticate(ws: LumioSocket, msg: LumioMessage) {
     if (msg.type !== "AUTH") {
       ws.close(CLOSE.unauthorized, "authenticate first");
       return;
@@ -92,7 +92,7 @@ export function createGateway({ presence, repo, tokens, router, logger }: Gatewa
     logger.info("device connected", { deviceId: device.id, ip: ws.data.ip });
   }
 
-  async function handleMessage(ws: SynqSocket, raw: string | Buffer) {
+  async function handleMessage(ws: LumioSocket, raw: string | Buffer) {
     if (typeof raw !== "string") {
       ws.close(CLOSE.protocol, "text frames only");
       return;
@@ -136,7 +136,7 @@ export function createGateway({ presence, repo, tokens, router, logger }: Gatewa
     }
   }
 
-  async function handleClose(ws: SynqSocket) {
+  async function handleClose(ws: LumioSocket) {
     sockets.delete(ws);
     clearTimeout(ws.data.authTimer);
     const deviceId = ws.data.deviceId;
@@ -168,14 +168,14 @@ export function createGateway({ presence, repo, tokens, router, logger }: Gatewa
     websocket: {
       maxPayloadLength: MAX_FRAME_BYTES,
       idleTimeout: 120,
-      open(ws: SynqSocket) {
+      open(ws: LumioSocket) {
         sockets.add(ws);
         ws.data.authTimer = setTimeout(() => ws.close(CLOSE.unauthorized, "authentication timeout"), AUTH_TIMEOUT_MS);
       },
-      message(ws: SynqSocket, raw: string | Buffer) {
+      message(ws: LumioSocket, raw: string | Buffer) {
         void guard(() => handleMessage(ws, raw));
       },
-      close(ws: SynqSocket) {
+      close(ws: LumioSocket) {
         void guard(() => handleClose(ws));
       },
     },

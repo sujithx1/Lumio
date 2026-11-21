@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:synq/protocol/message.dart';
+import 'package:lumio/protocol/message.dart';
 
 /// Runs the shared protocol fixtures (also used by the server and desktop) against the Dart parser.
 void main() {

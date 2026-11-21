@@ -1,13 +1,13 @@
 /**
- * A scripted Synq device that speaks the real protocol (HTTP auth + WebSocket + Ed25519 signatures).
+ * A scripted Lumio device that speaks the real protocol (HTTP auth + WebSocket + Ed25519 signatures).
  * Used by the end-to-end tests and by scripts/devsim.ts for manual testing against the desktop and mobile apps.
  */
 import { randomBytes } from "node:crypto";
 import { keyPairFromSeed, verifyEd25519 } from "../../src/lib/crypto";
 import { signingInput } from "../../src/protocol/canonical";
-import type { MessageType, Platform, SynqMessage } from "../../src/protocol/types";
+import type { MessageType, Platform, LumioMessage } from "../../src/protocol/types";
 
-type Msg<T extends MessageType> = Extract<SynqMessage, { type: T }>;
+type Msg<T extends MessageType> = Extract<LumioMessage, { type: T }>;
 
 export interface ApiResult<T = any> {
   status: number;
@@ -15,9 +15,9 @@ export interface ApiResult<T = any> {
 }
 
 export class SimDevice {
-  readonly inbox: SynqMessage[] = [];
+  readonly inbox: LumioMessage[] = [];
   private ws?: WebSocket;
-  private waiters: Array<{ match: (m: SynqMessage) => boolean; resolve: (m: SynqMessage) => void }> = [];
+  private waiters: Array<{ match: (m: LumioMessage) => boolean; resolve: (m: LumioMessage) => void }> = [];
   closed?: Promise<{ code: number; reason: string }>;
 
   private constructor(
@@ -49,7 +49,7 @@ export class SimDevice {
     const post = (path: string, body: unknown) =>
       fetch(`${baseUrl}${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     const ch = (await (await post("/v1/auth/challenge", { publicKey: keys.publicKey })).json()) as { nonce: string };
-    const signature = keys.sign(new TextEncoder().encode(`synq-auth-v1|${ch.nonce}|${keys.publicKey}`));
+    const signature = keys.sign(new TextEncoder().encode(`lumio-auth-v1|${ch.nonce}|${keys.publicKey}`));
     const res = await post("/v1/auth/token", { publicKey: keys.publicKey, nonce: ch.nonce, signature, ...(device ? { device } : {}) });
     if (!res.ok) throw new Error(`login failed: ${res.status} ${await res.text()}`);
     return (await res.json()) as { token: string; expiresAt: number; device: { deviceId: string; name: string } };
@@ -71,7 +71,7 @@ export class SimDevice {
     this.ws = ws;
     this.closed = new Promise((resolve) => ws.addEventListener("close", (e) => resolve({ code: e.code, reason: e.reason })));
     ws.addEventListener("message", (e) => {
-      const msg = JSON.parse(String(e.data)) as SynqMessage;
+      const msg = JSON.parse(String(e.data)) as LumioMessage;
       const i = this.waiters.findIndex((w) => w.match(msg));
       if (i >= 0) this.waiters.splice(i, 1)[0]!.resolve(msg);
       else this.inbox.push(msg);
@@ -86,11 +86,11 @@ export class SimDevice {
 
   /** Waits for the next message of a type (optionally matching a predicate). */
   next<T extends MessageType>(type: T, timeoutMs = 3000, where: (m: Msg<T>) => boolean = () => true): Promise<Msg<T>> {
-    const match = (m: SynqMessage) => m.type === type && where(m as Msg<T>);
+    const match = (m: LumioMessage) => m.type === type && where(m as Msg<T>);
     const i = this.inbox.findIndex(match);
     if (i >= 0) return Promise.resolve(this.inbox.splice(i, 1)[0] as Msg<T>);
     return new Promise((resolve, reject) => {
-      const waiter = { match, resolve: (m: SynqMessage) => (clearTimeout(timer), resolve(m as Msg<T>)) };
+      const waiter = { match, resolve: (m: LumioMessage) => (clearTimeout(timer), resolve(m as Msg<T>)) };
       const timer = setTimeout(() => {
         this.waiters = this.waiters.filter((w) => w !== waiter);
         reject(new Error(`${this.name}: timed out waiting for ${type}`));
@@ -137,7 +137,7 @@ export class SimDevice {
     return msg;
   }
 
-  static verify(msg: SynqMessage & { sig?: string }, publicKey: string): boolean {
+  static verify(msg: LumioMessage & { sig?: string }, publicKey: string): boolean {
     return Boolean(msg.sig) && verifyEd25519(publicKey, signingInput(msg), msg.sig!);
   }
 

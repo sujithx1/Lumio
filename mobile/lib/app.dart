@@ -14,28 +14,28 @@ import 'theme/tokens.g.dart';
 import 'widgets/send_sheet.dart';
 
 /// Makes the engine available to every widget; rebuilds dependents when it notifies.
-class SynqScope extends InheritedNotifier<SynqEngine> {
-  const SynqScope({super.key, required SynqEngine engine, required super.child}) : super(notifier: engine);
+class LumioScope extends InheritedNotifier<LumioEngine> {
+  const LumioScope({super.key, required LumioEngine engine, required super.child}) : super(notifier: engine);
 
-  static SynqEngine of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<SynqScope>()!.notifier!;
-  static SynqEngine read(BuildContext context) => context.getInheritedWidgetOfExactType<SynqScope>()!.notifier!;
+  static LumioEngine of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<LumioScope>()!.notifier!;
+  static LumioEngine read(BuildContext context) => context.getInheritedWidgetOfExactType<LumioScope>()!.notifier!;
 }
 
-class SynqApp extends StatelessWidget {
-  const SynqApp({super.key, required this.engine, this.onChangeServer});
+class LumioApp extends StatelessWidget {
+  const LumioApp({super.key, required this.engine, this.onChangeServer});
 
-  final SynqEngine engine;
+  final LumioEngine engine;
 
   /// Switches to another relay server (re-registers this device there).
   final Future<void> Function(String url)? onChangeServer;
 
   @override
-  Widget build(BuildContext context) => SynqScope(
+  Widget build(BuildContext context) => LumioScope(
     engine: engine,
     child: MaterialApp(
-      title: 'Synq',
+      title: 'Lumio',
       debugShowCheckedModeBanner: false,
-      theme: buildSynqTheme(),
+      theme: buildLumioTheme(),
       home: Shell(onChangeServer: onChangeServer),
     ),
   );
@@ -64,7 +64,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _sub?.cancel();
-    _sub = SynqScope.read(context).events.listen(_onEvent);
+    _sub = LumioScope.read(context).events.listen(_onEvent);
   }
 
   @override
@@ -77,7 +77,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   /// iOS and Android suspend sockets in the background; reconnect as soon as we're back.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) SynqScope.read(context).reconnectNow();
+    if (state == AppLifecycleState.resumed) LumioScope.read(context).reconnectNow();
   }
 
   void _snack(String message, {Color? color}) {
@@ -87,14 +87,14 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   }
 
   void _onEvent(CoreEvent e) {
-    final engine = SynqScope.read(context);
+    final engine = LumioScope.read(context);
     switch (e) {
       case EffectIncomingEvent(:final effect):
         final def = engine.catalog.byId(effect.effectId)!;
         Navigator.of(context).push(
           PageRouteBuilder<void>(
             opaque: true,
-            transitionDuration: SynqMotion.base,
+            transitionDuration: LumioMotion.base,
             pageBuilder: (_, _, _) => EffectScreen(
               effect: def,
               duration: effect.duration,
@@ -126,7 +126,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           status == 'receiver_offline'
               ? 'That device is offline.'
               : 'Effect not shown${detail != null ? ': ${detail.replaceAll('_', ' ')}' : ''}.',
-          color: SynqColors.danger.withValues(alpha: 0.9),
+          color: LumioColors.danger.withValues(alpha: 0.9),
         );
       case ErrorEvent(:final message):
         _snack(message);
@@ -183,7 +183,7 @@ class _PairRequestSheetState extends State<PairRequestSheet> {
   String? _error;
 
   Future<void> _act(bool approve) async {
-    final engine = SynqScope.read(context);
+    final engine = LumioScope.read(context);
     setState(() {
       _busy = true;
       _error = null;
@@ -206,27 +206,27 @@ class _PairRequestSheetState extends State<PairRequestSheet> {
     final r = widget.request;
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(SynqSpace.xl),
+        padding: const EdgeInsets.all(LumioSpace.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('Pair with ${r.claimant.name}?', style: text.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
-            const SizedBox(height: SynqSpace.xs),
+            const SizedBox(height: LumioSpace.xs),
             Text('Check that the other device shows the same number.', style: text.bodySmall),
-            const SizedBox(height: SynqSpace.xl),
+            const SizedBox(height: LumioSpace.xl),
             SasDigits(r.sas),
             if (_error != null)
               Padding(
-                padding: const EdgeInsets.only(top: SynqSpace.md),
-                child: Text(_error!, style: const TextStyle(color: SynqColors.danger)),
+                padding: const EdgeInsets.only(top: LumioSpace.md),
+                child: Text(_error!, style: const TextStyle(color: LumioColors.danger)),
               ),
-            const SizedBox(height: SynqSpace.xl),
+            const SizedBox(height: LumioSpace.xl),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(onPressed: _busy ? null : () => _act(false), child: const Text('Decline')),
                 ),
-                const SizedBox(width: SynqSpace.md),
+                const SizedBox(width: LumioSpace.md),
                 Expanded(
                   child: FilledButton(onPressed: _busy ? null : () => _act(true), child: const Text('Numbers match')),
                 ),
@@ -254,9 +254,9 @@ class SasDigits extends StatelessWidget {
           margin: EdgeInsets.only(left: i == 3 ? 14 : 4, right: 4),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: SynqColors.bg,
-            borderRadius: BorderRadius.circular(SynqRadius.sm),
-            border: Border.all(color: SynqColors.border),
+            color: LumioColors.bg,
+            borderRadius: BorderRadius.circular(LumioRadius.sm),
+            border: Border.all(color: LumioColors.border),
           ),
           child: Text(
             digits[i],
@@ -272,4 +272,4 @@ class SasDigits extends StatelessWidget {
 }
 
 /// Exposed for tests and previews.
-EffectCatalog catalogOf(BuildContext context) => SynqScope.read(context).catalog;
+EffectCatalog catalogOf(BuildContext context) => LumioScope.read(context).catalog;

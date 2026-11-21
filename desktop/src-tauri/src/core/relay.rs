@@ -50,12 +50,12 @@ pub async fn run(engine: Arc<Engine>, mut outgoing: mpsc::UnboundedReceiver<Stri
         }
         let wait = match outcome {
             Outcome::Revoked => {
-                engine.set_connection(ConnectionState::Revoked, Some("This device was removed from Synq.".into()));
+                engine.set_connection(ConnectionState::Revoked, Some("This device was removed from Lumio.".into()));
                 log::warn!("device revoked; relay stopped");
                 return;
             }
             Outcome::Replaced => {
-                engine.set_connection(ConnectionState::Offline, Some("Synq is open elsewhere with this identity.".into()));
+                engine.set_connection(ConnectionState::Offline, Some("Lumio is open elsewhere with this identity.".into()));
                 MAX_BACKOFF
             }
             Outcome::Dropped(reason) => {
@@ -161,7 +161,7 @@ mod tests {
     #[test]
     fn derives_websocket_urls() {
         assert_eq!(ws_url("http://localhost:8787").unwrap(), "ws://localhost:8787/v1/ws");
-        assert_eq!(ws_url("https://relay.synq.app/").unwrap(), "wss://relay.synq.app/v1/ws");
+        assert_eq!(ws_url("https://relay.lumio.app/").unwrap(), "wss://relay.lumio.app/v1/ws");
         assert!(ws_url("ftp://x").is_err());
     }
 }

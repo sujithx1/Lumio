@@ -1,5 +1,5 @@
 /**
- * Simulated Synq device for manual testing of the desktop and mobile apps.
+ * Simulated Lumio device for manual testing of the desktop and mobile apps.
  *
  *   bun scripts/devsim.ts host                 show a pairing code, auto-approve whoever claims it
  *   bun scripts/devsim.ts join <CODE>          claim a code shown by an app (approve it there)
@@ -22,7 +22,7 @@ const opt = (name: string, fallback: string) => {
   args.splice(i, 2);
   return value;
 };
-const server = opt("server", process.env.SYNQ_SERVER_URL ?? "http://localhost:8787");
+const server = opt("server", process.env.LUMIO_SERVER_URL ?? "http://localhost:8787");
 const name = opt("name", "Sim Device");
 const profile = opt("profile", "default");
 const [command = "listen", arg] = args;

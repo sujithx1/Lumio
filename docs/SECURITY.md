@@ -1,6 +1,6 @@
 # Security
 
-Synq lets one device make another device's screen do something. The core rule: **a received message can only select an effect from a fixed, built-in catalog and set bounded parameters. It can never carry code, commands, URLs or file paths.**
+Lumio lets one device make another device's screen do something. The core rule: **a received message can only select an effect from a fixed, built-in catalog and set bounded parameters. It can never carry code, commands, URLs or file paths.**
 
 ## Threat model
 
@@ -30,7 +30,7 @@ Synq lets one device make another device's screen do something. The core rule: *
 - No secrets in the repository. `server/.env` is git-ignored; `.env.example` documents variables.
 - The compose file's Postgres password is a development default and can be overridden with `POSTGRES_PASSWORD`.
 - Production secrets (JWT signing key, database URL, later APNs/FCM keys) come from the hosting platform's secret store. `make setup` generates a random local `JWT_SECRET`.
-- Desktop dev builds can use `SYNQ_KEYSTORE=file` (0600 file under the app data directory) instead of the Keychain; release builds should not set it.
+- Desktop dev builds can use `LUMIO_KEYSTORE=file` (0600 file under the app data directory) instead of the Keychain; release builds should not set it.
 
 ## Reporting
 

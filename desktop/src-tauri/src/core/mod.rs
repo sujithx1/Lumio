@@ -1,4 +1,4 @@
-//! Synq client core: identity, server API, relay connection and effect handling.
+//! Lumio client core: identity, server API, relay connection and effect handling.
 //! Independent of Tauri so it can be tested headless (see tests/relay_e2e.rs).
 
 pub mod api;

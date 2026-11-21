@@ -1,28 +1,28 @@
 // Two real mobile cores talking through a real relay server.
-// Runs only when SYNQ_TEST_SERVER_URL is set (see `make test-e2e`).
+// Runs only when LUMIO_TEST_SERVER_URL is set (see `make test-e2e`).
 import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:synq/core/api.dart';
-import 'package:synq/core/engine.dart';
-import 'package:synq/core/identity.dart';
-import 'package:synq/effects/catalog.dart';
+import 'package:lumio/core/api.dart';
+import 'package:lumio/core/engine.dart';
+import 'package:lumio/core/identity.dart';
+import 'package:lumio/effects/catalog.dart';
 
-Future<SynqEngine> startEngine(String base, String name, EffectCatalog catalog) async {
+Future<LumioEngine> startEngine(String base, String name, EffectCatalog catalog) async {
   final identity = await Identity.loadOrCreate(MemoryStore());
   final api = ApiClient(
     baseUrl: base,
     identity: identity,
     device: DeviceInfo(name: name, platform: 'ios', appVersion: '0.1.0-test'),
   );
-  return SynqEngine(api: api, identity: identity, catalog: catalog)..start();
+  return LumioEngine(api: api, identity: identity, catalog: catalog)..start();
 }
 
-Future<T> next<T extends CoreEvent>(SynqEngine e, [bool Function(T)? where]) =>
+Future<T> next<T extends CoreEvent>(LumioEngine e, [bool Function(T)? where]) =>
     e.events.where((x) => x is T && (where?.call(x) ?? true)).cast<T>().first.timeout(const Duration(seconds: 10));
 
-Future<void> until(SynqEngine e, bool Function() condition) async {
+Future<void> until(LumioEngine e, bool Function() condition) async {
   final deadline = DateTime.now().add(const Duration(seconds: 10));
   while (!condition()) {
     if (DateTime.now().isAfter(deadline)) throw TimeoutException('condition not met');
@@ -31,7 +31,7 @@ Future<void> until(SynqEngine e, bool Function() condition) async {
 }
 
 void main() {
-  final base = Platform.environment['SYNQ_TEST_SERVER_URL'];
+  final base = Platform.environment['LUMIO_TEST_SERVER_URL'];
 
   test(
     'pair, send both ways, busy rejection, completion, unpair',
@@ -85,7 +85,7 @@ void main() {
       await phone.unpair(tablet.me!.deviceId);
       expect((await revoked).peerDeviceId, phone.me!.deviceId);
     },
-    skip: base == null ? 'SYNQ_TEST_SERVER_URL not set' : false,
+    skip: base == null ? 'LUMIO_TEST_SERVER_URL not set' : false,
     timeout: const Timeout(Duration(seconds: 60)),
   );
 }

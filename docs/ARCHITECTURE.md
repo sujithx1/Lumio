@@ -1,6 +1,6 @@
-# Synq architecture
+# Lumio architecture
 
-Synq lets paired computers and phones trigger visual effects on each other, over the local network or through an internet relay. This document records the system shape and the decisions behind it.
+Lumio lets paired computers and phones trigger visual effects on each other, over the local network or through an internet relay. This document records the system shape and the decisions behind it.
 
 ## Components
 
@@ -61,9 +61,9 @@ Phones scan a QR code. Desktops usually cannot, so every pairing also shows a sh
 `sending → relayed → received → completed | failed(reason) | expired | receiver_offline | notified`
 
 - **Desktop:** full-screen (or transparent overlay) effect window; works while the app runs in the tray.
-- **Android / iOS:** render only while Synq is in the foreground. The OS suspends the socket in the background; the relay then reports `receiver_offline` to the sender, and the app reconnects the moment it returns to the foreground. Push notifications (planned: APNs/FCM, `notified` status) need Apple/Firebase accounts and are not implemented yet. iOS cannot be woken to show an animation in any case.
+- **Android / iOS:** render only while Lumio is in the foreground. The OS suspends the socket in the background; the relay then reports `receiver_offline` to the sender, and the app reconnects the moment it returns to the foreground. Push notifications (planned: APNs/FCM, `notified` status) need Apple/Firebase accounts and are not implemented yet. iOS cannot be woken to show an animation in any case.
 - **Sound:** desktop synthesises sound with Web Audio (no audio files). Mobile maps the sound option to haptic feedback.
-- **Offline receivers:** messages expire after at most 60 seconds. Synq never promises delivery to an offline device.
+- **Offline receivers:** messages expire after at most 60 seconds. Lumio never promises delivery to an offline device.
 
 ## Route selection (milestone 7, not implemented yet)
 
@@ -99,4 +99,4 @@ Phones scan a QR code. Desktops usually cannot, so every pairing also shows a sh
 
 ## Running several devices on one machine
 
-`SYNQ_PROFILE=<name>` gives a desktop instance its own identity and `SYNQ_KEYSTORE=file` keeps that key in a 0600 file instead of the Keychain (avoids repeated Keychain prompts for unsigned dev builds). `make desktop-b` starts a second desktop device next to `make desktop`. `make sim ARGS=...` adds a scripted device (see the root README).
+`LUMIO_PROFILE=<name>` gives a desktop instance its own identity and `LUMIO_KEYSTORE=file` keeps that key in a 0600 file instead of the Keychain (avoids repeated Keychain prompts for unsigned dev builds). `make desktop-b` starts a second desktop device next to `make desktop`. `make sim ARGS=...` adds a scripted device (see the root README).

@@ -36,7 +36,7 @@ class _SendSheetState extends State<SendSheet> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_eventId != null || _error != null) return;
-    final engine = SynqScope.read(context);
+    final engine = LumioScope.read(context);
     final e = engine.catalog.byId(widget.effectId ?? '') ?? engine.catalog.effects.first;
     _pick(e.id);
     final online = engine.peers.where((p) => p.online);
@@ -44,7 +44,7 @@ class _SendSheetState extends State<SendSheet> {
   }
 
   void _pick(String id) {
-    final e = SynqScope.read(context).catalog.byId(id)!;
+    final e = LumioScope.read(context).catalog.byId(id)!;
     _effectId = id;
     _duration = e.defaultDuration.toDouble();
     _intensity = e.defaultIntensity;
@@ -53,7 +53,7 @@ class _SendSheetState extends State<SendSheet> {
   }
 
   Future<void> _send() async {
-    final engine = SynqScope.read(context);
+    final engine = LumioScope.read(context);
     setState(() => _error = null);
     try {
       final id = await engine.sendEffect(_deviceId!, _effectId, _duration.round(), _intensity, _haptics);
@@ -65,7 +65,7 @@ class _SendSheetState extends State<SendSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final engine = SynqScope.of(context);
+    final engine = LumioScope.of(context);
     final text = Theme.of(context).textTheme;
     final effect = engine.catalog.byId(_effectId)!;
     final delivery = _eventId == null ? null : engine.deliveries[_eventId];
@@ -77,23 +77,23 @@ class _SendSheetState extends State<SendSheet> {
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          SynqSpace.xl,
+          LumioSpace.xl,
           0,
-          SynqSpace.xl,
-          SynqSpace.xl + MediaQuery.viewInsetsOf(context).bottom,
+          LumioSpace.xl,
+          LumioSpace.xl + MediaQuery.viewInsetsOf(context).bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text('Send an effect', style: text.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
-            const SizedBox(height: SynqSpace.lg),
+            const SizedBox(height: LumioSpace.lg),
             SizedBox(
               height: 74,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: engine.catalog.effects.length,
-                separatorBuilder: (_, _) => const SizedBox(width: SynqSpace.sm),
+                separatorBuilder: (_, _) => const SizedBox(width: LumioSpace.sm),
                 itemBuilder: (_, i) {
                   final e = engine.catalog.effects[i];
                   final selected = e.id == _effectId;
@@ -103,9 +103,9 @@ class _SendSheetState extends State<SendSheet> {
                       width: 88,
                       clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(SynqRadius.md),
+                        borderRadius: BorderRadius.circular(LumioRadius.md),
                         border: Border.all(
-                          color: selected ? SynqColors.accent : SynqColors.border,
+                          color: selected ? LumioColors.accent : LumioColors.border,
                           width: selected ? 2 : 1,
                         ),
                       ),
@@ -119,7 +119,7 @@ class _SendSheetState extends State<SendSheet> {
                               padding: const EdgeInsets.all(6),
                               child: Text(
                                 e.name,
-                                style: text.bodySmall?.copyWith(color: SynqColors.text, fontWeight: FontWeight.w600),
+                                style: text.bodySmall?.copyWith(color: LumioColors.text, fontWeight: FontWeight.w600),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -132,21 +132,21 @@ class _SendSheetState extends State<SendSheet> {
                 },
               ),
             ),
-            const SizedBox(height: SynqSpace.lg),
+            const SizedBox(height: LumioSpace.lg),
             Wrap(
-              spacing: SynqSpace.sm,
-              runSpacing: SynqSpace.sm,
+              spacing: LumioSpace.sm,
+              runSpacing: LumioSpace.sm,
               children: [
                 for (final p in engine.peers)
                   ChoiceChip(
-                    avatar: StatusDot(color: p.online ? SynqColors.online : SynqColors.offline, size: 7),
+                    avatar: StatusDot(color: p.online ? LumioColors.online : LumioColors.offline, size: 7),
                     label: Text(p.name),
                     selected: p.deviceId == _deviceId,
                     onSelected: (_) => setState(() => _deviceId = p.deviceId),
                   ),
               ],
             ),
-            const SizedBox(height: SynqSpace.md),
+            const SizedBox(height: LumioSpace.md),
             _labeled(
               context,
               'Duration',
@@ -173,15 +173,15 @@ class _SendSheetState extends State<SendSheet> {
             ),
             if (target != null && !target.online)
               Text(
-                '${target.name} is offline. Effects only play on devices with Synq open.',
-                style: const TextStyle(color: SynqColors.warning),
+                '${target.name} is offline. Effects only play on devices with Lumio open.',
+                style: const TextStyle(color: LumioColors.warning),
               ),
-            if (_error != null) Text(_error!, style: const TextStyle(color: SynqColors.danger)),
+            if (_error != null) Text(_error!, style: const TextStyle(color: LumioColors.danger)),
             if (status != null) ...[
-              const SizedBox(height: SynqSpace.md),
+              const SizedBox(height: LumioSpace.md),
               _Progress(status: status, detail: delivery?.detail),
             ],
-            const SizedBox(height: SynqSpace.lg),
+            const SizedBox(height: LumioSpace.lg),
             FilledButton.icon(
               onPressed: target == null || !target.online || !engine.isOnline || inFlight ? null : _send,
               icon: const Icon(Icons.send_rounded, size: 18),
@@ -222,7 +222,7 @@ class _Progress extends StatelessWidget {
         status == 'receiver_offline'
             ? 'The device is offline.'
             : 'Not shown${detail != null ? ': ${detail!.replaceAll('_', ' ')}' : ''}.',
-        style: const TextStyle(color: SynqColors.danger),
+        style: const TextStyle(color: LumioColors.danger),
       );
     }
     final current = _steps.indexWhere((s) => s.$1 == status);
@@ -236,17 +236,17 @@ class _Progress extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AnimatedContainer(
-                    duration: SynqMotion.slow,
+                    duration: LumioMotion.slow,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: i <= current ? SynqColors.accent : SynqColors.surfaceRaised,
+                      color: i <= current ? LumioColors.accent : LumioColors.surfaceRaised,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     label,
-                    style: TextStyle(fontSize: 11, color: i <= current ? SynqColors.text : SynqColors.textFaint),
+                    style: TextStyle(fontSize: 11, color: i <= current ? LumioColors.text : LumioColors.textFaint),
                   ),
                 ],
               ),
@@ -257,5 +257,5 @@ class _Progress extends StatelessWidget {
   }
 }
 
-/// Keeps `SynqConnection` reachable for widgets importing only this file.
-typedef Connection = SynqConnection;
+/// Keeps `LumioConnection` reachable for widgets importing only this file.
+typedef Connection = LumioConnection;

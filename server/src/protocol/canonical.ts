@@ -1,5 +1,5 @@
 /**
- * RFC 8785 (JCS) canonical JSON, restricted to what Synq messages contain:
+ * RFC 8785 (JCS) canonical JSON, restricted to what Lumio messages contain:
  * objects, arrays, strings, booleans and finite numbers. Keys are sorted by UTF-16 code units.
  * Numbers use ECMAScript Number#toString, which is what JCS specifies.
  * Rust and Dart implement the same rules; protocol/fixtures/signing/vectors.json keeps them in agreement.

@@ -2,7 +2,7 @@
 // ignore_for_file: constant_identifier_names
 import 'dart:ui';
 
-abstract final class SynqColors {
+abstract final class LumioColors {
   static const bg = Color(0xFF07080C);
   static const surface = Color(0xFF0E1017);
   static const surfaceRaised = Color(0xFF151823);
@@ -20,7 +20,7 @@ abstract final class SynqColors {
   static const danger = Color(0xFFF87171);
 }
 
-abstract final class SynqRadius {
+abstract final class LumioRadius {
   static const double sm = 8;
   static const double md = 14;
   static const double lg = 20;
@@ -28,7 +28,7 @@ abstract final class SynqRadius {
   static const double pill = 999;
 }
 
-abstract final class SynqSpace {
+abstract final class LumioSpace {
   static const double xs = 4;
   static const double sm = 8;
   static const double md = 12;
@@ -38,7 +38,7 @@ abstract final class SynqSpace {
   static const double xxxl = 48;
 }
 
-abstract final class SynqMotion {
+abstract final class LumioMotion {
   static const fast = Duration(milliseconds: 140);
   static const base = Duration(milliseconds: 220);
   static const slow = Duration(milliseconds: 420);

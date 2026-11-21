@@ -1,4 +1,4 @@
-# Synq protocol (v1)
+# Lumio protocol (v1)
 
 Normative source: [`protocol/schemas/message.schema.json`](../protocol/schemas/message.schema.json).
 Implementations: `server/src/protocol/` (TypeScript + Ajv), `desktop/src-tauri/src/protocol.rs` (Rust), `mobile/lib/protocol/message.dart` (Dart).
@@ -64,7 +64,7 @@ All bodies are JSON objects; unknown fields are rejected. Errors are `{ "error":
 | Method & path | Auth | Body → Response |
 |---|---|---|
 | `POST /v1/auth/challenge` | – | `{ publicKey }` → `{ nonce, expiresAt }` (single use, 60 s) |
-| `POST /v1/auth/token` | – | `{ publicKey, nonce, signature, device?: { name, platform, appVersion } }` → `{ token, expiresAt, device }`. `signature` signs the UTF-8 bytes of `synq-auth-v1\|<nonce>\|<publicKey>`. 201 when it registered a new device. |
+| `POST /v1/auth/token` | – | `{ publicKey, nonce, signature, device?: { name, platform, appVersion } }` → `{ token, expiresAt, device }`. `signature` signs the UTF-8 bytes of `lumio-auth-v1\|<nonce>\|<publicKey>`. 201 when it registered a new device. |
 | `GET /v1/me` | Bearer | → this device |
 | `PATCH /v1/me` | Bearer | `{ name }` → device summary |
 | `DELETE /v1/me` | Bearer | revoke this device: pairings end, sockets close with 4003, future logins get 403 |
@@ -78,7 +78,7 @@ All bodies are JSON objects; unknown fields are rejected. Errors are `{ "error":
 | `GET /v1/ws` | `AUTH` frame | WebSocket, see below |
 | `GET /health` | – | `{ status, db, version, protocol }` |
 
-The SAS is the first 4 bytes of `SHA-256("synq-sas-v1|<normalised code>|<initiator key>|<claimant key>")` mod 10⁶, zero-padded to 6 digits.
+The SAS is the first 4 bytes of `SHA-256("lumio-sas-v1|<normalised code>|<initiator key>|<claimant key>")` mod 10⁶, zero-padded to 6 digits.
 
 ## WebSocket session
 

@@ -271,7 +271,7 @@ impl Engine {
             return Err("That device is not paired.".into());
         }
         if !self.is_online() {
-            return Err("You're offline. Effects can be sent once Synq reconnects.".into());
+            return Err("You're offline. Effects can be sent once Lumio reconnects.".into());
         }
         let intensity = (intensity.clamp(0.0, 1.0) * 100.0).round() / 100.0;
         let duration = catalog::clamp_duration(spec, duration);

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://synq.app/schemas/v1/message.schema.json",
-  "title": "SynqMessage",
-  "description": "Every message exchanged over a Synq transport (relay WebSocket or LAN WebSocket). Validate the envelope first, then the definition named by `type` (see MessageTypes). Cross-field rules (lifetime, from != to) are enforced in code; see docs/PROTOCOL.md.",
+  "$id": "https://lumio.app/schemas/v1/message.schema.json",
+  "title": "LumioMessage",
+  "description": "Every message exchanged over a Lumio transport (relay WebSocket or LAN WebSocket). Validate the envelope first, then the definition named by `type` (see MessageTypes). Cross-field rules (lifetime, from != to) are enforced in code; see docs/PROTOCOL.md.",
   "oneOf": [
     { "$ref": "#/$defs/Auth" },
     { "$ref": "#/$defs/AuthOk" },

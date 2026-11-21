@@ -142,14 +142,14 @@ class _EffectScreenState extends State<EffectScreen> with SingleTickerProviderSt
                   alignment: Alignment.topCenter,
                   child: AnimatedOpacity(
                     opacity: _showLabel ? 1 : 0,
-                    duration: SynqMotion.slow,
+                    duration: LumioMotion.slow,
                     child: Container(
-                      margin: const EdgeInsets.only(top: SynqSpace.lg),
-                      padding: const EdgeInsets.symmetric(horizontal: SynqSpace.lg, vertical: SynqSpace.sm),
+                      margin: const EdgeInsets.only(top: LumioSpace.lg),
+                      padding: const EdgeInsets.symmetric(horizontal: LumioSpace.lg, vertical: LumioSpace.sm),
                       decoration: BoxDecoration(
                         color: const Color(0x33000000),
-                        borderRadius: BorderRadius.circular(SynqRadius.pill),
-                        border: Border.all(color: SynqColors.border),
+                        borderRadius: BorderRadius.circular(LumioRadius.pill),
+                        border: Border.all(color: LumioColors.border),
                       ),
                       child: Text.rich(
                         TextSpan(

@@ -6,7 +6,7 @@ import { devicePairings, devices, effectEvents } from "../src/db/schema";
 
 const url = process.env.TEST_DATABASE_URL;
 
-// Integration tests need a disposable Postgres database (`make db-up` creates synq_test).
+// Integration tests need a disposable Postgres database (`make db-up` creates lumio_test).
 describe.skipIf(!url)("database schema (integration)", () => {
   const conn = url ? createDb(url) : undefined;
   const db = conn!.db;

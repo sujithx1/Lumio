@@ -6,7 +6,7 @@ const MAX_CHALLENGES = 50_000;
 
 /** The exact bytes a device signs to prove it holds its private key. */
 export const authSigningInput = (nonce: string, publicKey: string) =>
-  new TextEncoder().encode(`synq-auth-v1|${nonce}|${publicKey}`);
+  new TextEncoder().encode(`lumio-auth-v1|${nonce}|${publicKey}`);
 
 /** Single-use, short-lived login challenges, bound to the public key that requested them. */
 export class ChallengeStore {
@@ -40,13 +40,13 @@ export function createTokenService(secret: string, ttlSeconds: number) {
     async issue(deviceId: string): Promise<{ token: string; expiresAt: number }> {
       const iat = Math.floor(Date.now() / 1000);
       const exp = iat + ttlSeconds;
-      return { token: await sign({ sub: deviceId, iat, exp, aud: "synq" }, secret, "HS256"), expiresAt: exp * 1000 };
+      return { token: await sign({ sub: deviceId, iat, exp, aud: "lumio" }, secret, "HS256"), expiresAt: exp * 1000 };
     },
     /** Returns the device id, or null if the token is invalid or expired. */
     async verify(token: string): Promise<string | null> {
       try {
         const payload = await verify(token, secret, "HS256");
-        return payload.aud === "synq" && typeof payload.sub === "string" ? payload.sub : null;
+        return payload.aud === "lumio" && typeof payload.sub === "string" ? payload.sub : null;
       } catch {
         return null;
       }

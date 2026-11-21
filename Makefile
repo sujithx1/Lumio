@@ -1,4 +1,4 @@
-# Synq developer commands. Each app is independent; this file just saves typing.
+# Lumio developer commands. Each app is independent; this file just saves typing.
 SHELL := /bin/bash
 export PATH := $(HOME)/.cargo/bin:$(PATH)
 
@@ -51,7 +51,7 @@ desktop:
 
 # A second device on the same machine: own profile, file-based key, same Vite dev server.
 desktop-b:
-	cd desktop/src-tauri && SYNQ_PROFILE=b SYNQ_KEYSTORE=file cargo run
+	cd desktop/src-tauri && LUMIO_PROFILE=b LUMIO_KEYSTORE=file cargo run
 
 mobile-ios:
 	cd mobile && flutter run -d ios
@@ -75,11 +75,11 @@ test-desktop:
 test-mobile:
 	cd mobile && flutter analyze && flutter test
 
-# Real relay on a throwaway port + the synq_test database; Rust and Dart clients pair and exchange effects.
+# Real relay on a throwaway port + the lumio_test database; Rust and Dart clients pair and exchange effects.
 test-e2e:
 	@cd server && bun run db:migrate >/dev/null && \
-	  (DATABASE_URL=$$(grep ^TEST_DATABASE_URL .env | cut -d= -f2-) PORT=$(E2E_PORT) LOG_LEVEL=warn bun src/index.ts & echo $$! > /tmp/synq-e2e.pid); \
+	  (DATABASE_URL=$$(grep ^TEST_DATABASE_URL .env | cut -d= -f2-) PORT=$(E2E_PORT) LOG_LEVEL=warn bun src/index.ts & echo $$! > /tmp/lumio-e2e.pid); \
 	  sleep 1; status=0; \
-	  (cd ../desktop/src-tauri && SYNQ_TEST_SERVER_URL=$(E2E_URL) cargo test --quiet --test relay_e2e) || status=1; \
-	  (cd ../mobile && SYNQ_TEST_SERVER_URL=$(E2E_URL) flutter test test/relay_e2e_test.dart) || status=1; \
-	  kill $$(cat /tmp/synq-e2e.pid); rm -f /tmp/synq-e2e.pid; exit $$status
+	  (cd ../desktop/src-tauri && LUMIO_TEST_SERVER_URL=$(E2E_URL) cargo test --quiet --test relay_e2e) || status=1; \
+	  (cd ../mobile && LUMIO_TEST_SERVER_URL=$(E2E_URL) flutter test test/relay_e2e_test.dart) || status=1; \
+	  kill $$(cat /tmp/lumio-e2e.pid); rm -f /tmp/lumio-e2e.pid; exit $$status

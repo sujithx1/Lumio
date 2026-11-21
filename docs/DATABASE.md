@@ -5,7 +5,7 @@ PostgreSQL 17, accessed through Drizzle ORM. Schema: [`server/src/db/schema.ts`]
 ## Workflow
 
 ```bash
-make db-up                     # start Postgres on 127.0.0.1:5442 (creates synq and synq_test)
+make db-up                     # start Postgres on 127.0.0.1:5442 (creates lumio and lumio_test)
 cd server && bun run db:migrate
 # after editing schema.ts:
 cd server && bun run db:generate   # writes a new SQL migration; review it before committing
@@ -54,4 +54,4 @@ Per-device preferences: accept effects, sound, overlay vs full-screen, do-not-di
 
 ## Tests
 
-`server/test/db.integration.test.ts` runs the real migrations against `synq_test` and checks key ordering, the active-pairing uniqueness rule, re-pairing after revocation, event id uniqueness and cascade deletes. It is skipped when `TEST_DATABASE_URL` is unset.
+`server/test/db.integration.test.ts` runs the real migrations against `lumio_test` and checks key ordering, the active-pairing uniqueness rule, re-pairing after revocation, event id uniqueness and cascade deletes. It is skipped when `TEST_DATABASE_URL` is unset.

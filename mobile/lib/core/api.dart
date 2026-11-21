@@ -1,4 +1,4 @@
-// HTTP client for the Synq server: challenge/response login and the REST API.
+// HTTP client for the Lumio server: challenge/response login and the REST API.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -137,11 +137,11 @@ class ApiClient {
     } on ApiException {
       rethrow;
     } on TimeoutException {
-      throw const ApiException(0, 'network', 'The Synq server did not respond in time.');
+      throw const ApiException(0, 'network', 'The Lumio server did not respond in time.');
     } on SocketException {
-      throw const ApiException(0, 'network', "Can't reach the Synq server.");
+      throw const ApiException(0, 'network', "Can't reach the Lumio server.");
     } on HttpException {
-      throw const ApiException(0, 'network', "Can't reach the Synq server.");
+      throw const ApiException(0, 'network', "Can't reach the Lumio server.");
     } on FormatException {
       throw const ApiException(0, 'bad_response', 'Unexpected response from the server.');
     }
@@ -151,7 +151,7 @@ class ApiClient {
     final pk = identity.publicKey;
     final challenge = await _send('POST', '/v1/auth/challenge', body: {'publicKey': pk}) as Map<String, dynamic>;
     final nonce = challenge['nonce'] as String;
-    final signature = await identity.sign(utf8.encode('synq-auth-v1|$nonce|$pk'));
+    final signature = await identity.sign(utf8.encode('lumio-auth-v1|$nonce|$pk'));
     final res = await _send(
       'POST',
       '/v1/auth/token',

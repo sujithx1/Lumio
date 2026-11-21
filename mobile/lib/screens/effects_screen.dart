@@ -25,29 +25,29 @@ class EffectsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final engine = SynqScope.of(context);
+    final engine = LumioScope.of(context);
     final text = Theme.of(context).textTheme;
     final canSend = engine.peers.isNotEmpty;
     return SafeArea(
       child: CustomScrollView(
         slivers: [
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(SynqSpace.xl, SynqSpace.lg, SynqSpace.xl, SynqSpace.lg),
+            padding: const EdgeInsets.fromLTRB(LumioSpace.xl, LumioSpace.lg, LumioSpace.xl, LumioSpace.lg),
             sliver: SliverList.list(
               children: [
                 Text('Effects', style: text.headlineMedium),
-                const SizedBox(height: SynqSpace.xs),
+                const SizedBox(height: LumioSpace.xs),
                 Text('Tap to send. Long-press to preview on this phone.', style: text.bodySmall),
               ],
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(SynqSpace.xl, 0, SynqSpace.xl, SynqSpace.xxxl),
+            padding: const EdgeInsets.fromLTRB(LumioSpace.xl, 0, LumioSpace.xl, LumioSpace.xxxl),
             sliver: SliverGrid.builder(
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 240,
-                mainAxisSpacing: SynqSpace.md,
-                crossAxisSpacing: SynqSpace.md,
+                mainAxisSpacing: LumioSpace.md,
+                crossAxisSpacing: LumioSpace.md,
                 childAspectRatio: 0.78,
               ),
               itemCount: engine.catalog.effects.length,
@@ -65,7 +65,7 @@ class EffectsScreen extends StatelessWidget {
                           child: EffectSwatch(effect: e, height: double.infinity),
                         ),
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(SynqSpace.md, SynqSpace.sm, SynqSpace.md, SynqSpace.md),
+                          padding: const EdgeInsets.fromLTRB(LumioSpace.md, LumioSpace.sm, LumioSpace.md, LumioSpace.md),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [

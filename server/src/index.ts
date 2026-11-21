@@ -13,7 +13,7 @@ try {
   throw err;
 }
 
-const logger = createLogger(config.logLevel, { svc: "synq-server" });
+const logger = createLogger(config.logLevel, { svc: "lumio-server" });
 const running = startServer(config, logger);
 logger.info("listening", { url: running.url.toString() });
 

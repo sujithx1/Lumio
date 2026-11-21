@@ -41,7 +41,7 @@ describe("GET /health", () => {
 });
 
 describe("loadConfig", () => {
-  const base = { DATABASE_URL: "postgres://u:p@localhost:5442/synq", JWT_SECRET: "x".repeat(32) };
+  const base = { DATABASE_URL: "postgres://u:p@localhost:5442/lumio", JWT_SECRET: "x".repeat(32) };
 
   test("applies defaults", () => {
     expect(loadConfig(base)).toEqual({

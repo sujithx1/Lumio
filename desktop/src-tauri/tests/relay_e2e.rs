@@ -1,12 +1,12 @@
 //! Two real desktop cores talking through a real relay server.
-//! Runs only when SYNQ_TEST_SERVER_URL is set (see `make test-e2e`).
+//! Runs only when LUMIO_TEST_SERVER_URL is set (see `make test-e2e`).
 
 use std::sync::Arc;
 use std::time::Duration;
-use synq_desktop_lib::core::api::{ApiClient, DeviceInfo};
-use synq_desktop_lib::core::engine::{ConnectionState, CoreEvent, Engine};
-use synq_desktop_lib::core::identity::{Identity, KeyStore, MemoryStore};
-use synq_desktop_lib::core::relay;
+use lumio_desktop_lib::core::api::{ApiClient, DeviceInfo};
+use lumio_desktop_lib::core::engine::{ConnectionState, CoreEvent, Engine};
+use lumio_desktop_lib::core::identity::{Identity, KeyStore, MemoryStore};
+use lumio_desktop_lib::core::relay;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 struct Client {
@@ -53,8 +53,8 @@ impl Client {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn pair_send_receive_complete_and_unpair() {
-    let Ok(base) = std::env::var("SYNQ_TEST_SERVER_URL") else {
-        eprintln!("SYNQ_TEST_SERVER_URL not set; skipping");
+    let Ok(base) = std::env::var("LUMIO_TEST_SERVER_URL") else {
+        eprintln!("LUMIO_TEST_SERVER_URL not set; skipping");
         return;
     };
 

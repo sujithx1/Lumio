@@ -79,7 +79,7 @@ export function Dashboard({ onPair, onSend }: Props) {
               type="button"
               onClick={() => onSend({ effectId: effect.id })}
               disabled={peers.length === 0}
-              className="rounded-xl bg-surface p-2 text-left transition duration-base ease-synq hairline hover:-translate-y-0.5 hover:border-border-strong disabled:pointer-events-none disabled:opacity-50"
+              className="rounded-xl bg-surface p-2 text-left transition duration-base ease-lumio hairline hover:-translate-y-0.5 hover:border-border-strong disabled:pointer-events-none disabled:opacity-50"
             >
               <EffectPreview effect={effect} size="sm" />
               <p className="px-1.5 pt-2.5 pb-1 text-[13px] font-medium">{effect.name}</p>
@@ -135,7 +135,7 @@ function ThisDevice() {
           <p className="text-xs tracking-wide text-fg-faint uppercase">This device</p>
           <h1 className="truncate text-[26px] font-semibold tracking-tight">{name}</h1>
           <p className="mt-0.5 text-[13px] text-fg-muted">
-            {snapshot ? `${PLATFORM_LABEL[snapshot.platform]} · Synq ${snapshot.appVersion}` : "Starting…"}
+            {snapshot ? `${PLATFORM_LABEL[snapshot.platform]} · Lumio ${snapshot.appVersion}` : "Starting…"}
             {snapshot?.connectionDetail && snapshot.connection !== "online" && ` · ${snapshot.connectionDetail}`}
           </p>
         </div>

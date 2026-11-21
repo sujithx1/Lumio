@@ -1,7 +1,7 @@
 /**
  * DEV ONLY: lets the UI run in a plain browser (http://localhost:1420/?mock) with sample data,
  * for design review without the Rust side. Never bundled into production builds (guarded by
- * import.meta.env.DEV in main.tsx). Drive events from the console with window.__synqEmit({...}).
+ * import.meta.env.DEV in main.tsx). Drive events from the console with window.__lumioEmit({...}).
  */
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
@@ -42,7 +42,7 @@ export function installMockIpc() {
           const size = 29;
           let modules = "";
           for (let i = 0; i < size * size; i++) modules += (i * 2654435761) % 7 < 3 ? "1" : "0";
-          return { pairingId: "p1", code: "7KQ2M-X9FHT", expiresAt: Date.now() + 120e3, uri: "synq://pair", qr: { size, modules } };
+          return { pairingId: "p1", code: "7KQ2M-X9FHT", expiresAt: Date.now() + 120e3, uri: "lumio://pair", qr: { size, modules } };
         }
         case "send_effect":
           return "evt-mock";
@@ -52,5 +52,5 @@ export function installMockIpc() {
     },
     { shouldMockEvents: true },
   );
-  (window as unknown as { __synqEmit: (e: CoreEvent) => Promise<void> }).__synqEmit = (e) => emit("synq://event", e);
+  (window as unknown as { __lumioEmit: (e: CoreEvent) => Promise<void> }).__lumioEmit = (e) => emit("lumio://event", e);
 }

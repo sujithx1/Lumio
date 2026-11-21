@@ -45,7 +45,7 @@ class Identity {
   /// Ed25519 public key, base64url without padding.
   final String publicKey;
 
-  static const _seedKey = 'synq.identity.seed';
+  static const _seedKey = 'lumio.identity.seed';
 
   /// Loads the key, creating and storing a new one on first run.
   static Future<Identity> loadOrCreate(SecureStore store) async {

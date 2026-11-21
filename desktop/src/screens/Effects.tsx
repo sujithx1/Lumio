@@ -22,7 +22,7 @@ export function Effects({ onSend }: { onSend: (target: SendTarget) => void }) {
       </header>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {catalog.effects.map((effect) => (
-          <Card key={effect.id} className="group p-2.5 transition duration-base ease-synq hover:border-border-strong">
+          <Card key={effect.id} className="group p-2.5 transition duration-base ease-lumio hover:border-border-strong">
             <button
               type="button"
               className="block w-full"

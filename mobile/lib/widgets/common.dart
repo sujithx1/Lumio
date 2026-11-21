@@ -17,11 +17,11 @@ String timeAgo(int ms) {
   return '${(s / 86400).round()} d ago';
 }
 
-(Color, String) connectionLook(SynqConnection c) => switch (c) {
-  SynqConnection.online => (SynqColors.online, 'Connected'),
-  SynqConnection.offline => (SynqColors.offline, 'Offline · retrying'),
-  SynqConnection.revoked => (SynqColors.danger, 'Device removed'),
-  SynqConnection.connecting => (SynqColors.textFaint, 'Connecting…'),
+(Color, String) connectionLook(LumioConnection c) => switch (c) {
+  LumioConnection.online => (LumioColors.online, 'Connected'),
+  LumioConnection.offline => (LumioColors.offline, 'Offline · retrying'),
+  LumioConnection.revoked => (LumioColors.danger, 'Device removed'),
+  LumioConnection.connecting => (LumioColors.textFaint, 'Connecting…'),
 };
 
 class StatusDot extends StatelessWidget {
@@ -48,7 +48,7 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: SynqSpace.md),
+    padding: const EdgeInsets.only(bottom: LumioSpace.md),
     child: Row(
       children: [
         Expanded(child: Text(label.toUpperCase(), style: Theme.of(context).textTheme.labelSmall)),
@@ -70,15 +70,15 @@ class EmptyCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: SynqSpace.xl, vertical: SynqSpace.xxl),
+        padding: const EdgeInsets.symmetric(horizontal: LumioSpace.xl, vertical: LumioSpace.xxl),
         child: Column(
           children: [
-            Icon(icon, color: SynqColors.textMuted),
-            const SizedBox(height: SynqSpace.md),
+            Icon(icon, color: LumioColors.textMuted),
+            const SizedBox(height: LumioSpace.md),
             Text(title, style: text.titleMedium),
-            const SizedBox(height: SynqSpace.xs),
+            const SizedBox(height: LumioSpace.xs),
             Text(body, style: text.bodySmall, textAlign: TextAlign.center),
-            if (action != null) ...[const SizedBox(height: SynqSpace.lg), action!],
+            if (action != null) ...[const SizedBox(height: LumioSpace.lg), action!],
           ],
         ),
       ),
@@ -101,7 +101,7 @@ class EffectSwatch extends StatelessWidget {
         gradient: RadialGradient(
           center: const Alignment(0, 0.6),
           radius: 1.1,
-          colors: [effect.accent[0], effect.accent[1].withValues(alpha: 0.55), SynqColors.bg],
+          colors: [effect.accent[0], effect.accent[1].withValues(alpha: 0.55), LumioColors.bg],
           stops: const [0, 0.45, 1],
         ),
       ),

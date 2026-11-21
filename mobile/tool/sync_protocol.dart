@@ -34,24 +34,24 @@ String _generateTokens(Map<String, dynamic> t) {
     ..writeln('// ignore_for_file: constant_identifier_names')
     ..writeln("import 'dart:ui';")
     ..writeln()
-    ..writeln('abstract final class SynqColors {');
+    ..writeln('abstract final class LumioColors {');
   (t['color'] as Map<String, dynamic>).forEach((k, v) => b.writeln('  static const $k = ${_color(v as String)};'));
   b
     ..writeln('}')
     ..writeln()
-    ..writeln('abstract final class SynqRadius {');
+    ..writeln('abstract final class LumioRadius {');
   (t['radius'] as Map<String, dynamic>).forEach((k, v) => b.writeln('  static const double $k = $v;'));
   b
     ..writeln('}')
     ..writeln()
-    ..writeln('abstract final class SynqSpace {');
+    ..writeln('abstract final class LumioSpace {');
   (t['space'] as Map<String, dynamic>).forEach((k, v) => b.writeln('  static const double $k = $v;'));
   final motion = t['motion'] as Map<String, dynamic>;
   final easing = (motion['easing'] as List).join(', ');
   b
     ..writeln('}')
     ..writeln()
-    ..writeln('abstract final class SynqMotion {')
+    ..writeln('abstract final class LumioMotion {')
     ..writeln('  static const fast = Duration(milliseconds: ${motion['durationFast']});')
     ..writeln('  static const base = Duration(milliseconds: ${motion['durationBase']});')
     ..writeln('  static const slow = Duration(milliseconds: ${motion['durationSlow']});')

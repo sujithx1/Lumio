@@ -69,6 +69,6 @@ export function normalizePairingCode(input: string): string | null {
  * Binds the code to both public keys, so a device that only saw the QR code cannot impersonate either side.
  */
 export function pairingSas(code: string, initiatorPublicKey: string, claimantPublicKey: string): string {
-  const digest = createHash("sha256").update(`synq-sas-v1|${code}|${initiatorPublicKey}|${claimantPublicKey}`).digest();
+  const digest = createHash("sha256").update(`lumio-sas-v1|${code}|${initiatorPublicKey}|${claimantPublicKey}`).digest();
   return String(digest.readUInt32BE(0) % 1_000_000).padStart(6, "0");
 }

@@ -121,7 +121,7 @@ export const native = {
   effectFinished: (completed: boolean) => invoke<void>("effect_finished", { completed }),
   serverStatus: () => invoke<ServerStatus>("server_status"),
   onEvent: (handler: (event: CoreEvent) => void): Promise<UnlistenFn> =>
-    listen<CoreEvent>("synq://event", (e) => handler(e.payload)),
+    listen<CoreEvent>("lumio://event", (e) => handler(e.payload)),
 };
 
 /** Commands reject with a plain string; normalise for display. */

@@ -2,13 +2,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:synq/app.dart';
-import 'package:synq/core/api.dart';
-import 'package:synq/core/engine.dart';
-import 'package:synq/core/identity.dart';
-import 'package:synq/effects/catalog.dart';
-import 'package:synq/effects/renderers.dart';
-import 'package:synq/protocol/message.dart' show isEffectId;
+import 'package:lumio/app.dart';
+import 'package:lumio/core/api.dart';
+import 'package:lumio/core/engine.dart';
+import 'package:lumio/core/identity.dart';
+import 'package:lumio/effects/catalog.dart';
+import 'package:lumio/effects/renderers.dart';
+import 'package:lumio/protocol/message.dart' show isEffectId;
 
 void main() {
   final catalog = EffectCatalog.fromJson(File('assets/protocol/catalog.json').readAsStringSync());
@@ -45,7 +45,7 @@ void main() {
 
   testWidgets('shell renders the catalog and an empty device list before connecting', (tester) async {
     final identity = await Identity.fromSeed(List.filled(32, 3));
-    final engine = SynqEngine(
+    final engine = LumioEngine(
       api: ApiClient(
         baseUrl: 'http://127.0.0.1:9',
         identity: identity,
@@ -60,7 +60,7 @@ void main() {
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(SynqApp(engine: engine));
+    await tester.pumpWidget(LumioApp(engine: engine));
     await tester.pump();
 
     expect(find.text('Test Phone'), findsOneWidget);
@@ -72,7 +72,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Tap to send. Long-press to preview on this phone.'), findsOneWidget);
 
-    engine.connection = SynqConnection.offline;
+    engine.connection = LumioConnection.offline;
     engine.notifyListeners();
     await tester.tap(find.text('Devices'));
     await tester.pumpAndSettle();

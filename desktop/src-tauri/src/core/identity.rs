@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn file_store_round_trips_with_private_permissions() {
-        let dir = std::env::temp_dir().join(format!("synq-test-{}", uuid::Uuid::now_v7()));
+        let dir = std::env::temp_dir().join(format!("lumio-test-{}", uuid::Uuid::now_v7()));
         let store = FileStore::new(dir.join("identity.key"));
         let id = Identity::load_or_create(&store).unwrap();
         assert_eq!(Identity::load_or_create(&store).unwrap().public_key(), id.public_key());

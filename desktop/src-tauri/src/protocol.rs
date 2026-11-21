@@ -463,7 +463,7 @@ pub fn is_effect_id(s: &str) -> bool {
         && s.split('-').all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit()))
 }
 
-/// RFC 8785 (JCS) canonical JSON for the value shapes Synq uses.
+/// RFC 8785 (JCS) canonical JSON for the value shapes Lumio uses.
 /// Must match `server/src/protocol/canonical.ts` and the Dart implementation byte for byte;
 /// `protocol/fixtures/signing/vectors.json` enforces that.
 pub fn canonicalize(value: &Value) -> String {
@@ -490,7 +490,7 @@ fn write_canonical(value: &Value, out: &mut String) {
         }
         Value::Object(map) => {
             let mut keys: Vec<&String> = map.keys().collect();
-            // Byte order equals UTF-16 order for every key Synq uses (ASCII).
+            // Byte order equals UTF-16 order for every key Lumio uses (ASCII).
             keys.sort();
             out.push('{');
             for (i, key) in keys.iter().enumerate() {

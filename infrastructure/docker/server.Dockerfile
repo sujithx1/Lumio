@@ -1,5 +1,5 @@
-# Synq relay server. Build from the repository root:
-#   docker build -f infrastructure/docker/server.Dockerfile -t synq-server .
+# Lumio relay server. Build from the repository root:
+#   docker build -f infrastructure/docker/server.Dockerfile -t lumio-server .
 # Runtime config comes from the environment (DATABASE_URL, JWT_SECRET, PORT, LOG_LEVEL).
 # Terminate TLS in front of this container (load balancer / reverse proxy): clients require HTTPS/WSS in production.
 FROM oven/bun:1.3-alpine AS deps
