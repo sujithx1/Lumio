@@ -1,0 +1,389 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synq.app/schemas/v1/message.schema.json",
+  "title": "SynqMessage",
+  "description": "Every message exchanged over a Synq transport (relay WebSocket or LAN WebSocket). Validate the envelope first, then the definition named by `type` (see MessageTypes). Cross-field rules (lifetime, from != to) are enforced in code; see docs/PROTOCOL.md.",
+  "oneOf": [
+    { "$ref": "#/$defs/Auth" },
+    { "$ref": "#/$defs/AuthOk" },
+    { "$ref": "#/$defs/Heartbeat" },
+    { "$ref": "#/$defs/DevicePairRequest" },
+    { "$ref": "#/$defs/DevicePairApproved" },
+    { "$ref": "#/$defs/DevicePairRejected" },
+    { "$ref": "#/$defs/DevicePairRevoked" },
+    { "$ref": "#/$defs/DeviceOnline" },
+    { "$ref": "#/$defs/DeviceOffline" },
+    { "$ref": "#/$defs/EffectTrigger" },
+    { "$ref": "#/$defs/EffectReceived" },
+    { "$ref": "#/$defs/EffectCompleted" },
+    { "$ref": "#/$defs/EffectFailed" },
+    { "$ref": "#/$defs/EffectStatus" },
+    { "$ref": "#/$defs/Error" }
+  ],
+  "$defs": {
+    "MessageTypes": {
+      "description": "Maps each `type` value to its definition in $defs.",
+      "const": {
+        "AUTH": "Auth",
+        "AUTH_OK": "AuthOk",
+        "HEARTBEAT": "Heartbeat",
+        "DEVICE_PAIR_REQUEST": "DevicePairRequest",
+        "DEVICE_PAIR_APPROVED": "DevicePairApproved",
+        "DEVICE_PAIR_REJECTED": "DevicePairRejected",
+        "DEVICE_PAIR_REVOKED": "DevicePairRevoked",
+        "DEVICE_ONLINE": "DeviceOnline",
+        "DEVICE_OFFLINE": "DeviceOffline",
+        "EFFECT_TRIGGER": "EffectTrigger",
+        "EFFECT_RECEIVED": "EffectReceived",
+        "EFFECT_COMPLETED": "EffectCompleted",
+        "EFFECT_FAILED": "EffectFailed",
+        "EFFECT_STATUS": "EffectStatus",
+        "ERROR": "Error"
+      }
+    },
+
+    "Uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "DeviceId": { "$ref": "#/$defs/Uuid" },
+    "Address": {
+      "anyOf": [{ "$ref": "#/$defs/DeviceId" }, { "const": "server" }]
+    },
+    "Timestamp": {
+      "description": "Unix epoch milliseconds.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "Signature": {
+      "description": "Ed25519 signature (64 bytes) over the RFC 8785 canonical JSON of the message without `sig`, base64url without padding.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{86}$"
+    },
+    "PublicKey": {
+      "description": "Ed25519 public key (32 bytes), base64url without padding.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$"
+    },
+    "Platform": { "enum": ["macos", "windows", "linux", "android", "ios"] },
+    "DeviceName": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "EffectId": {
+      "type": "string",
+      "maxLength": 48,
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "DeviceSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deviceId", "name", "platform"],
+      "properties": {
+        "deviceId": { "$ref": "#/$defs/DeviceId" },
+        "name": { "$ref": "#/$defs/DeviceName" },
+        "platform": { "$ref": "#/$defs/Platform" }
+      }
+    },
+    "EmptyPayload": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
+    "EventRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eventId"],
+      "properties": { "eventId": { "$ref": "#/$defs/Uuid" } }
+    },
+
+    "Envelope": {
+      "type": "object",
+      "required": ["v", "id", "type", "from", "to", "createdAt", "expiresAt", "payload"],
+      "properties": {
+        "v": { "const": 1 },
+        "id": { "$ref": "#/$defs/Uuid" },
+        "type": { "type": "string", "maxLength": 32 },
+        "from": { "$ref": "#/$defs/Address" },
+        "to": { "$ref": "#/$defs/Address" },
+        "createdAt": { "$ref": "#/$defs/Timestamp" },
+        "expiresAt": { "$ref": "#/$defs/Timestamp" },
+        "payload": { "type": "object" },
+        "sig": { "$ref": "#/$defs/Signature" }
+      }
+    },
+
+    "Auth": {
+      "description": "Device -> server. First frame on a relay WebSocket.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "properties": {
+        "type": { "const": "AUTH" },
+        "to": { "const": "server" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["token"],
+          "properties": { "token": { "type": "string", "minLength": 16, "maxLength": 4096 } }
+        }
+      }
+    },
+    "AuthOk": {
+      "description": "Server -> device. Session accepted.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "properties": {
+        "type": { "const": "AUTH_OK" },
+        "from": { "const": "server" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["deviceId", "serverTime"],
+          "properties": {
+            "deviceId": { "$ref": "#/$defs/DeviceId" },
+            "serverTime": { "$ref": "#/$defs/Timestamp" }
+          }
+        }
+      }
+    },
+    "Heartbeat": {
+      "description": "Either direction. Keeps presence alive.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "properties": {
+        "type": { "const": "HEARTBEAT" },
+        "payload": { "$ref": "#/$defs/EmptyPayload" }
+      }
+    },
+    "DevicePairRequest": {
+      "description": "Server -> pairing initiator. Another device claimed the pairing code; show the SAS and ask the user to approve.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "properties": {
+        "type": { "const": "DEVICE_PAIR_REQUEST" },
+        "from": { "const": "server" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pairingId", "claimant", "sas"],
+          "properties": {
+            "pairingId": { "$ref": "#/$defs/Uuid" },
+            "claimant": { "$ref": "#/$defs/DeviceSummary" },
+            "sas": { "type": "string", "pattern": "^[0-9]{6}$" }
+          }
+        }
+      }
+    },
+    "DevicePairApproved": {
+      "description": "Server -> both devices. The pairing is now trusted.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "properties": {
+        "type": { "const": "DEVICE_PAIR_APPROVED" },
+        "from": { "const": "server" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pairingId", "peer", "peerPublicKey"],
+          "properties": {
+            "pairingId": { "$ref": "#/$defs/Uuid" },
+            "peer": { "$ref": "#/$defs/DeviceSummary" },
+            "peerPublicKey": { "$ref": "#/$defs/PublicKey" }
+          }
+        }
+      }
+    },
+    "DevicePairRejected": {
+      "description": "Server -> claimant. The initiator declined the pairing (or it expired).",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "properties": {
+        "type": { "const": "DEVICE_PAIR_REJECTED" },
+        "from": { "const": "server" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pairingId"],
+          "properties": { "pairingId": { "$ref": "#/$defs/Uuid" } }
+        }
+      }
+    },
+    "DevicePairRevoked": {
+      "description": "Server -> device. A pairing was removed or the peer was revoked.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "properties": {
+        "type": { "const": "DEVICE_PAIR_REVOKED" },
+        "from": { "const": "server" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["peerDeviceId"],
+          "properties": { "peerDeviceId": { "$ref": "#/$defs/DeviceId" } }
+        }
+      }
+    },
+    "DeviceOnline": {
+      "description": "Server -> paired devices.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "properties": {
+        "type": { "const": "DEVICE_ONLINE" },
+        "from": { "const": "server" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["deviceId"],
+          "properties": { "deviceId": { "$ref": "#/$defs/DeviceId" } }
+        }
+      }
+    },
+    "DeviceOffline": {
+      "description": "Server -> paired devices.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "properties": {
+        "type": { "const": "DEVICE_OFFLINE" },
+        "from": { "const": "server" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["deviceId", "lastSeenAt"],
+          "properties": {
+            "deviceId": { "$ref": "#/$defs/DeviceId" },
+            "lastSeenAt": { "$ref": "#/$defs/Timestamp" }
+          }
+        }
+      }
+    },
+    "EffectTrigger": {
+      "description": "Device -> device (via relay or LAN). Must be signed by the sender.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "required": ["sig"],
+      "properties": {
+        "sig": { "$ref": "#/$defs/Signature" },
+        "type": { "const": "EFFECT_TRIGGER" },
+        "from": { "$ref": "#/$defs/DeviceId" },
+        "to": { "$ref": "#/$defs/DeviceId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["effectId", "duration", "intensity", "sound"],
+          "properties": {
+            "effectId": { "$ref": "#/$defs/EffectId" },
+            "duration": { "type": "integer", "minimum": 1000, "maximum": 15000 },
+            "intensity": { "type": "number", "minimum": 0, "maximum": 1 },
+            "sound": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "EffectReceived": {
+      "description": "Receiver -> sender. Trigger passed validation and is rendering.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "required": ["sig"],
+      "properties": {
+        "sig": { "$ref": "#/$defs/Signature" },
+        "type": { "const": "EFFECT_RECEIVED" },
+        "from": { "$ref": "#/$defs/DeviceId" },
+        "to": { "$ref": "#/$defs/DeviceId" },
+        "payload": { "$ref": "#/$defs/EventRef" }
+      }
+    },
+    "EffectCompleted": {
+      "description": "Receiver -> sender. Effect finished (or the user dismissed it).",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "required": ["sig"],
+      "properties": {
+        "sig": { "$ref": "#/$defs/Signature" },
+        "type": { "const": "EFFECT_COMPLETED" },
+        "from": { "$ref": "#/$defs/DeviceId" },
+        "to": { "$ref": "#/$defs/DeviceId" },
+        "payload": { "$ref": "#/$defs/EventRef" }
+      }
+    },
+    "EffectFailed": {
+      "description": "Receiver -> sender. Trigger was rejected or could not render.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "required": ["sig"],
+      "properties": {
+        "sig": { "$ref": "#/$defs/Signature" },
+        "type": { "const": "EFFECT_FAILED" },
+        "from": { "$ref": "#/$defs/DeviceId" },
+        "to": { "$ref": "#/$defs/DeviceId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["eventId", "reason"],
+          "properties": {
+            "eventId": { "$ref": "#/$defs/Uuid" },
+            "reason": {
+              "enum": [
+                "unknown_effect",
+                "expired",
+                "duplicate",
+                "invalid_signature",
+                "not_paired",
+                "unsupported",
+                "busy",
+                "render_error"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "EffectStatus": {
+      "description": "Server -> sender. What the relay did with an EFFECT_TRIGGER.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "properties": {
+        "type": { "const": "EFFECT_STATUS" },
+        "from": { "const": "server" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["eventId", "status"],
+          "properties": {
+            "eventId": { "$ref": "#/$defs/Uuid" },
+            "status": { "enum": ["relayed", "receiver_offline", "notified", "expired", "rejected"] }
+          }
+        }
+      }
+    },
+    "Error": {
+      "description": "Server -> device.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "properties": {
+        "type": { "const": "ERROR" },
+        "from": { "const": "server" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message"],
+          "properties": {
+            "code": {
+              "enum": ["bad_request", "unauthorized", "forbidden", "not_found", "rate_limited", "internal"]
+            },
+            "message": { "type": "string", "maxLength": 256 },
+            "refId": { "$ref": "#/$defs/Uuid" }
+          }
+        }
+      }
+    }
+  }
+}

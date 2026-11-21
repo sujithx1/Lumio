@@ -1,0 +1,19 @@
+{
+  "description": "Effect id cannot be a path",
+  "message": {
+    "v": 1,
+    "id": "0193a2b6-0000-7000-8000-000000000019",
+    "type": "EFFECT_TRIGGER",
+    "from": "0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b",
+    "to": "0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b",
+    "createdAt": 1763712000000,
+    "expiresAt": 1763712030000,
+    "payload": {
+      "effectId": "../../etc/passwd",
+      "duration": 6000,
+      "intensity": 0.8,
+      "sound": true
+    },
+    "sig": "CzBVep_E6Q4zWH2ix-wRNluApcrvFDleg6jN8hc8YYar0PUaP2SJrtP4HUJnjLHW-yBFao-02f4jSG2St9wBJg"
+  }
+}

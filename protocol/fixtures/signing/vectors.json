@@ -1,0 +1,116 @@
+{
+  "description": "Cross-language signing vectors. TEST KEY ONLY.",
+  "seedHex": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
+  "publicKey": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+  "cases": [
+    {
+      "canonical": "{\"createdAt\":1763712000000,\"expiresAt\":1763712030000,\"from\":\"0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b\",\"id\":\"0193a2b6-0000-7000-8000-000000000201\",\"payload\":{\"duration\":6000,\"effectId\":\"cosmic-portal\",\"intensity\":0.8,\"sound\":true},\"to\":\"0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b\",\"type\":\"EFFECT_TRIGGER\",\"v\":1}",
+      "message": {
+        "v": 1,
+        "createdAt": 1763712000000,
+        "expiresAt": 1763712030000,
+        "id": "0193a2b6-0000-7000-8000-000000000201",
+        "type": "EFFECT_TRIGGER",
+        "from": "0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b",
+        "to": "0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b",
+        "payload": {
+          "effectId": "cosmic-portal",
+          "duration": 6000,
+          "intensity": 0.8,
+          "sound": true
+        },
+        "sig": "0YWZ9DrWsjgr7dRMmUeW9AkiWfPPNetf2E4e8SEePr80w1yFlPbAKTkpJVy7GBcoU-_468K233GI5h751du4CA"
+      }
+    },
+    {
+      "canonical": "{\"createdAt\":1763712000000,\"expiresAt\":1763712030000,\"from\":\"0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b\",\"id\":\"0193a2b6-0000-7000-8000-000000000202\",\"payload\":{\"duration\":1000,\"effectId\":\"rainbow\",\"intensity\":1,\"sound\":false},\"to\":\"0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b\",\"type\":\"EFFECT_TRIGGER\",\"v\":1}",
+      "message": {
+        "v": 1,
+        "createdAt": 1763712000000,
+        "expiresAt": 1763712030000,
+        "id": "0193a2b6-0000-7000-8000-000000000202",
+        "type": "EFFECT_TRIGGER",
+        "from": "0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b",
+        "to": "0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b",
+        "payload": {
+          "sound": false,
+          "intensity": 1,
+          "duration": 1000,
+          "effectId": "rainbow"
+        },
+        "sig": "7P0Xp0Cgeoqjz1UXGjLp0iQgBmjWJp5prEnLzpLK0mFL9gnfzu7f8qqZikH0ptQHicthCVNjdvcxQNUVZnezBQ"
+      }
+    },
+    {
+      "canonical": "{\"createdAt\":1763712000000,\"expiresAt\":1763712030000,\"from\":\"0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b\",\"id\":\"0193a2b6-0000-7000-8000-000000000203\",\"payload\":{\"duration\":15000,\"effectId\":\"aurora\",\"intensity\":0,\"sound\":false},\"to\":\"0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b\",\"type\":\"EFFECT_TRIGGER\",\"v\":1}",
+      "message": {
+        "v": 1,
+        "createdAt": 1763712000000,
+        "expiresAt": 1763712030000,
+        "id": "0193a2b6-0000-7000-8000-000000000203",
+        "type": "EFFECT_TRIGGER",
+        "from": "0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b",
+        "to": "0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b",
+        "payload": {
+          "effectId": "aurora",
+          "duration": 15000,
+          "intensity": 0,
+          "sound": false
+        },
+        "sig": "n6vGL7TW_XkcyRSlkTElC2tjkxoUwRqg0xNIHZ-Y04Sy_doziOy97mT67GokvDGeqrf8wqVuMOX-s_N291JoDw"
+      }
+    },
+    {
+      "canonical": "{\"createdAt\":1763712000000,\"expiresAt\":1763712030000,\"from\":\"0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b\",\"id\":\"0193a2b6-0000-7000-8000-000000000204\",\"payload\":{\"duration\":4000,\"effectId\":\"lightning\",\"intensity\":0.35,\"sound\":true},\"to\":\"0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b\",\"type\":\"EFFECT_TRIGGER\",\"v\":1}",
+      "message": {
+        "v": 1,
+        "createdAt": 1763712000000,
+        "expiresAt": 1763712030000,
+        "id": "0193a2b6-0000-7000-8000-000000000204",
+        "type": "EFFECT_TRIGGER",
+        "from": "0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b",
+        "to": "0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b",
+        "payload": {
+          "effectId": "lightning",
+          "duration": 4000,
+          "intensity": 0.35,
+          "sound": true
+        },
+        "sig": "L8ZWVrd9VZlWDVKg9T10Ulqo2pbRK1Nv_xZkpfH_Td18B5ACbfTD_vkj8mkm-moKP-Ghoh5HW3z0818o_7PRBA"
+      }
+    },
+    {
+      "canonical": "{\"createdAt\":1763712000000,\"expiresAt\":1763712030000,\"from\":\"0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b\",\"id\":\"0193a2b6-0000-7000-8000-000000000205\",\"payload\":{\"eventId\":\"0193a2b6-0000-7000-8000-000000000201\"},\"to\":\"0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b\",\"type\":\"EFFECT_RECEIVED\",\"v\":1}",
+      "message": {
+        "v": 1,
+        "createdAt": 1763712000000,
+        "expiresAt": 1763712030000,
+        "id": "0193a2b6-0000-7000-8000-000000000205",
+        "type": "EFFECT_RECEIVED",
+        "from": "0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b",
+        "to": "0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b",
+        "payload": {
+          "eventId": "0193a2b6-0000-7000-8000-000000000201"
+        },
+        "sig": "yPoG9Q5v_0GUlNTe_5YzDwsK76dvar0fsEJkV4KwTAtGILJFwilcSp9rOR4Apv6mxFaDmUlPzWPUzi_pTbGTAw"
+      }
+    },
+    {
+      "canonical": "{\"createdAt\":1763712000000,\"expiresAt\":1763712030000,\"from\":\"0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b\",\"id\":\"0193a2b6-0000-7000-8000-000000000206\",\"payload\":{\"eventId\":\"0193a2b6-0000-7000-8000-000000000201\",\"reason\":\"unknown_effect\"},\"to\":\"0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b\",\"type\":\"EFFECT_FAILED\",\"v\":1}",
+      "message": {
+        "v": 1,
+        "createdAt": 1763712000000,
+        "expiresAt": 1763712030000,
+        "id": "0193a2b6-0000-7000-8000-000000000206",
+        "type": "EFFECT_FAILED",
+        "from": "0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b",
+        "to": "0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b",
+        "payload": {
+          "eventId": "0193a2b6-0000-7000-8000-000000000201",
+          "reason": "unknown_effect"
+        },
+        "sig": "jhcgP0I34IU_eYEm4-6Y-jUpXe4LfMdcILFcMocdCsbkv-u_6MWosq5KpkzU4BTeZhkUyOoRWmKXeqMan_30Dg"
+      }
+    }
+  ]
+}

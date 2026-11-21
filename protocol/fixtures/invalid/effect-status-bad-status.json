@@ -1,0 +1,16 @@
+{
+  "description": "Status must be known",
+  "message": {
+    "v": 1,
+    "id": "0193a2b6-0000-7000-8000-000000000028",
+    "type": "EFFECT_STATUS",
+    "from": "server",
+    "to": "0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b",
+    "createdAt": 1763712000000,
+    "expiresAt": 1763712030000,
+    "payload": {
+      "eventId": "0193a2b5-0000-7abc-8def-0123456789ab",
+      "status": "delivered"
+    }
+  }
+}
