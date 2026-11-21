@@ -2,7 +2,9 @@
 
 Pair your computers and phones and send beautiful visual effects between them.
 
-A device shows a QR code (or a short code), another device scans or types it, both screens show the same 6-digit number, and once approved either device can trigger full-screen effects on the other: Cosmic Portal, Rainbow, Volcano, Lightning, Celebration, Matrix, Aurora and Fireworks. Effects are signed by the sender's device key and verified by the receiver; a receiver only ever renders effects from its built-in catalog.
+A device shows a QR code (or a short code), another device scans or types it, both screens show the same 6-digit number, and once approved either device can trigger effects on the other. On a computer, effects float **over the desktop** (see-through, clicks pass through) and arrive **from the screen edge where you keep your phone** (the Send Zone). On a phone you **flick an effect card up toward the computer** to send it.
+
+14 effects: Cosmic Portal, Rainbow, Volcano, Lightning, Celebration, Matrix, Aurora, Fireworks, plus original anime- and cartoon-style effects (Spiral Orb, Pirate Voyage, Giant's Wall, Power Aura, Cartoon Parade) and Event Horizon (a black hole). Effects are signed by the sender's device key and verified by the receiver; a receiver only ever renders effects from its built-in catalog.
 
 ## Status
 
@@ -11,7 +13,8 @@ A device shows a QR code (or a short code), another device scans or types it, bo
 | Relay server (auth, pairing, presence, signed effect routing) | ✅ Built and tested against real Postgres |
 | Desktop app (Tauri) | ✅ macOS built and run. Windows/Linux: same code, not yet built or tested |
 | Mobile app (Flutter) | ✅ iOS built and run in the Simulator. Android: code complete, not yet built (no SDK on the dev machine) |
-| Effects | ✅ 8 on desktop (WebGL + Canvas, synthesised sound), 8 on mobile (fragment shaders + CustomPainter, haptics) |
+| Effects | ✅ 14 on desktop (see-through overlay, WebGL + Canvas, synthesised sound) and 14 on mobile (fragment shaders + CustomPainter over the app, haptics) |
+| Send Zone, overlay mode, flick to send | ✅ Desktop setting under **Devices → Effects on this computer**; flick card in the phone's send sheet |
 | Local-network mode (mDNS, direct LAN) | ❌ Not built; everything goes through the relay |
 | Push notifications (APNs/FCM) | ❌ Not built; phones receive effects only while Lumio is open |
 | Packaging | ⚠️ Server Docker image only; app signing/notarisation not done |
@@ -69,4 +72,12 @@ Runs: server unit + Postgres integration tests (including a full relay end-to-en
 3. Update the three models: `server/src/protocol/types.ts`, `desktop/src-tauri/src/protocol.rs`, `mobile/lib/protocol/message.dart`.
 4. `make test`. All suites must pass before committing.
 
-Editing the effect catalog or design tokens? Run `make sync`. Adding an effect means adding a renderer on both desktop (`desktop/src/effects/registry.ts`) and mobile (`mobile/lib/effects/renderers.dart`); tests fail until both exist.
+Editing the effect catalog or design tokens? Run `make sync`.
+
+### Adding an effect
+1. Add an entry to `protocol/effects/catalog.json` (id, name, category, durations, accent colours) and run `make sync`.
+2. Desktop: write a renderer (Canvas 2D or a shader) that draws on a transparent canvas and treats x = 0 as the Send Zone edge (`beginFrame` handles mirroring), then register it in `desktop/src/effects/registry.ts`.
+3. Mobile: add a matching `EffectSim` in `mobile/lib/effects/renderers.dart` (and a `.frag` file in `mobile/shaders/` if it uses a shader).
+4. `make test`: the registry tests fail until every catalog effect has a renderer on both platforms.
+
+Desktop effects can be previewed in a browser during development: `cd desktop && bun run dev`, then open `http://localhost:1420/?effect=pirate-voyage&duration=7000&edge=right`.

@@ -56,6 +56,13 @@ Phones scan a QR code. Desktops usually cannot, so every pairing also shows a sh
 ### 8. Trusted effect catalog
 `protocol/effects/catalog.json` ships inside every build. A receiver renders an effect only if its id is in the catalog **and** the client has a renderer for it. Messages carry an effect id and clamped parameters, never code.
 
+## How effects look
+
+- **Desktop overlay (default):** each effect gets a transparent, borderless, always-on-top window that covers the screen and ignores the mouse, so the effect plays over the desktop while the user keeps working. This uses Tauri's `macOSPrivateApi` (fine for direct distribution, not allowed in the Mac App Store). A **Full screen** mode keeps the old opaque window.
+- **Send Zone:** a per-computer setting (left or right edge). Renderers are written to enter from x = 0 and are mirrored for the right edge (`beginFrame` in `desktop/src/effects/types.ts`, `u_mirror` in shaders). The edge glows in the effect's accent colours as it arrives.
+- **Phone:** iOS and Android do not allow drawing over other apps, so the phone shows effects over Lumio itself on a dim backdrop. Sending is a **flick**: the selected effect becomes a card the user throws upward, toward the computer.
+- Desktop settings (`sendZone`, `displayMode`, `sound`) are local to the computer (`settings.json` in the app data folder); they never travel over the network and the protocol is unchanged.
+
 ## Delivery model
 
 `sending → relayed → received → completed | failed(reason) | expired | receiver_offline | notified`
@@ -80,8 +87,9 @@ Phones scan a QR code. Desktops usually cannot, so every pairing also shows a sh
 | M2 | Device identity, registration, QR/typed-code pairing with SAS | ✅ |
 | M3 | WebSocket gateway, presence, signed routing, rate limits, reconnection | ✅ |
 | M4 | Effect pipeline end-to-end, full-screen receiver | ✅ |
-| M5 | All 8 desktop effects, full desktop UI, tray | ✅ (transparent overlay mode and OS notifications not yet) |
-| M6 | Flutter app: pairing (scan/type/show), send, receive, 8 effects | ✅ iOS · ⚠️ Android untested |
+| M5 | Desktop effects, full desktop UI, tray | ✅ (OS notifications not yet) |
+| M5b | See-through overlay, Send Zone, flick to send, 14 effects incl. anime/cartoon set | ✅ |
+| M6 | Flutter app: pairing (scan/type/show), send, receive, all effects | ✅ iOS · ⚠️ Android untested |
 | M7 | LAN: mDNS discovery, pinned-cert local WSS, route selection | ❌ not started |
 | M8 | Push notifications, packaging, signing, hosted relay | ⚠️ server Docker image only |
 
@@ -95,7 +103,8 @@ Phones scan a QR code. Desktops usually cannot, so every pairing also shows a sh
 | Two Dart clients do the same | `mobile/test/relay_e2e_test.dart` (`make test-e2e`) |
 | Real desktop app receives an effect from a TypeScript peer, renders it full screen, acks completion | manual, with `make sim` |
 | Real iOS app pairs by typed code, receives (shader + canvas effects) and sends effects | manual, iOS Simulator + `make sim` |
-| All 8 desktop renderers draw correctly; canvas renderers run a full timeline at 3 intensities | visual check + `desktop/src/effects/effects.test.ts` |
+| All 14 desktop renderers draw correctly over a desktop, from both edges; canvas renderers run a full timeline at 3 intensities | visual check + `desktop/src/effects/effects.test.ts` |
+| Mobile renderers run their timelines; flick-to-send sends on a flick and ignores short drags | `mobile/test/widget_test.dart` + iOS Simulator |
 
 ## Running several devices on one machine
 

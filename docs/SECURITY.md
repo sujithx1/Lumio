@@ -16,6 +16,7 @@ Lumio lets one device make another device's screen do something. The core rule: 
 | LAN eavesdropping or spoofing | WSS with self-signed certs pinned at pairing + mutual challenge; mDNS records hold only a version and a rotating opaque id | ❌ LAN mode not built yet; all traffic goes through the relay |
 | Lost or stolen device | Unpair from any paired device; `DELETE /v1/me` revokes a device entirely (sockets closed with 4003, logins refused) | ✅ API (no "revoke" button in the UIs yet) |
 | Webview compromise (desktop) | Strict CSP (`default-src 'self'`, no remote scripts); minimal Tauri capabilities (`core:default` + window dragging) | ✅ |
+| An effect blocking the user's screen | Overlay windows are click-through and never take focus; effects are capped at 15 s; one effect at a time; Full screen mode can be dismissed with a click or Esc | ✅ |
 
 ## Transport
 
