@@ -34,5 +34,5 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     throw new ConfigError("TOKEN_TTL_SECONDS must be an integer between 60 and 3600");
   }
 
-  return { port, host: env.HOST ?? "0.0.0.0", databaseUrl, logLevel, jwtSecret, tokenTtlSeconds };
+  return { port, host: env.HOST ?? "::", databaseUrl, logLevel, jwtSecret, tokenTtlSeconds };
 }

@@ -46,7 +46,7 @@ describe("loadConfig", () => {
   test("applies defaults", () => {
     expect(loadConfig(base)).toEqual({
       port: 8787,
-      host: "0.0.0.0",
+      host: "::",
       databaseUrl: base.DATABASE_URL,
       logLevel: "info",
       jwtSecret: base.JWT_SECRET,
