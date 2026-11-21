@@ -1,0 +1,45 @@
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import { EffectStage } from "./effects/EffectStage";
+import type { EffectLaunch } from "./lib/native";
+import "./index.css";
+
+function windowLabel(): string | null {
+  try {
+    return getCurrentWindow().label;
+  } catch {
+    return null; // Not running inside Tauri.
+  }
+}
+
+// Dev builds opened in a plain browser can preview an effect with ?effect=<id>&intensity=0.8&duration=6000.
+function devPreview(): EffectLaunch | undefined {
+  if (!import.meta.env.DEV || windowLabel() !== null) return undefined;
+  const q = new URLSearchParams(location.search);
+  const effectId = q.get("effect");
+  if (!effectId) return undefined;
+  return {
+    eventId: null,
+    effectId,
+    duration: Number(q.get("duration") ?? 600000),
+    intensity: Number(q.get("intensity") ?? 0.8),
+    sound: false,
+    fromName: "Preview",
+  };
+}
+
+// Dev builds opened in a plain browser can run the UI on sample data with ?mock.
+if (import.meta.env.DEV && windowLabel() === null && new URLSearchParams(location.search).has("mock")) {
+  const { installMockIpc } = await import("./dev/mockIpc");
+  installMockIpc();
+}
+
+// The same bundle serves the main window and the full-screen effect windows ("effect-<n>").
+const preview = devPreview();
+const isEffectWindow = windowLabel()?.startsWith("effect-") ?? false;
+
+ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+  <React.StrictMode>{isEffectWindow || preview ? <EffectStage {...(preview ? { preview } : {})} /> : <App />}</React.StrictMode>,
+);
