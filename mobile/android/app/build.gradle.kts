@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "app.lumio.lumio"
+    namespace = "com.sujithx1.lumio"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "app.lumio.lumio"
+        applicationId = "com.sujithx1.lumio"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
