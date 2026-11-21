@@ -3,6 +3,7 @@
 use crate::core::api::{DeviceSummary, PairingClaimed, RecentEffect};
 use crate::core::engine::{Engine, Peer, Snapshot};
 use crate::effects::{EffectLaunch, Effects};
+use crate::settings::{DisplayMode, Settings, SettingsStore};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
@@ -141,10 +142,16 @@ pub struct PreviewRequest {
     sound: bool,
 }
 
-/// Plays an effect locally, without the network.
+/// Plays an effect locally, without the network, using this computer's display settings.
 #[tauri::command]
-pub fn preview_effect(app: AppHandle, effects: State<'_, Effects>, request: PreviewRequest) -> CmdResult<()> {
+pub fn preview_effect(
+    app: AppHandle,
+    effects: State<'_, Effects>,
+    settings: State<'_, SettingsStore>,
+    request: PreviewRequest,
+) -> CmdResult<()> {
     let spec = crate::core::catalog::effect(&request.effect_id).ok_or("Unknown effect.")?;
+    let s = settings.get();
     effects.open(
         &app,
         EffectLaunch {
@@ -152,10 +159,22 @@ pub fn preview_effect(app: AppHandle, effects: State<'_, Effects>, request: Prev
             effect_id: spec.id.clone(),
             duration: crate::core::catalog::clamp_duration(spec, request.duration),
             intensity: request.intensity.clamp(0.0, 1.0),
-            sound: request.sound,
+            sound: request.sound && s.sound,
             from_name: None,
+            edge: s.send_zone,
+            overlay: s.display_mode == DisplayMode::Overlay,
         },
     )
+}
+
+#[tauri::command]
+pub fn get_settings(settings: State<'_, SettingsStore>) -> Settings {
+    settings.get()
+}
+
+#[tauri::command]
+pub fn update_settings(settings: State<'_, SettingsStore>, value: Settings) -> CmdResult<Settings> {
+    settings.set(value)
 }
 
 /// Called by an effect window on load to learn what to render.

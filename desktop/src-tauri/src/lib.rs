@@ -2,6 +2,7 @@ mod commands;
 pub mod core;
 mod effects;
 pub mod protocol;
+pub mod settings;
 
 use crate::core::api::{ApiClient, DeviceInfo};
 use crate::core::engine::{CoreEvent, Engine};
@@ -74,6 +75,8 @@ pub fn run() {
         .setup(|app| {
             let profile = profile();
             let identity = Arc::new(open_identity(app, &profile)?);
+            let data_dir = app.path().app_data_dir()?.join(&profile);
+            app.manage(settings::SettingsStore::load(data_dir.join("settings.json")));
             let server_url = std::env::var("LUMIO_SERVER_URL").unwrap_or_else(|_| "http://localhost:8787".into());
             let app_version = app.package_info().version.to_string();
             let api = Arc::new(ApiClient::new(
@@ -94,7 +97,8 @@ pub fn run() {
                     match &event {
                         CoreEvent::EffectIncoming { effect } => {
                             let fx = handle.state::<effects::Effects>();
-                            if let Err(e) = fx.open(&handle, effect.clone().into()) {
+                            let prefs = handle.state::<settings::SettingsStore>().get();
+                            if let Err(e) = fx.open(&handle, effects::EffectLaunch::incoming(effect.clone(), &prefs)) {
                                 log::error!("{e}");
                                 handle.state::<commands::AppState>().engine.finish_incoming(&effect.event_id, false);
                             }
@@ -152,6 +156,8 @@ pub fn run() {
             commands::effect_launch,
             commands::effect_finished,
             commands::server_status,
+            commands::get_settings,
+            commands::update_settings,
         ])
         .build(tauri::generate_context!())
         .expect("error while building Lumio");

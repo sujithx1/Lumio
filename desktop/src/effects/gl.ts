@@ -1,12 +1,17 @@
 import type { EffectFactory } from "./types";
 
-/** GLSL helpers shared by the shader effects. */
+/**
+ * GLSL helpers shared by the shader effects. Shaders output PREMULTIPLIED colour: for light,
+ * use alpha = brightness so the effect glows over whatever is underneath the transparent window.
+ * `u_mirror` is 1.0 when the effect should enter from the right edge instead of the left.
+ */
 export const GLSL_COMMON = /* glsl */ `
 precision highp float;
 uniform vec2 u_res;
 uniform float u_time;
 uniform float u_intensity;
 uniform float u_progress;
+uniform float u_mirror;
 
 float hash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -31,6 +36,18 @@ float fbm(vec2 p) {
   }
   return v;
 }
+
+/** Screen uv in [0,1], y up, flipped horizontally for the right-edge Send Zone. */
+vec2 edgeUv() {
+  vec2 uv = gl_FragCoord.xy / u_res;
+  if (u_mirror > 0.5) uv.x = 1.0 - uv.x;
+  return uv;
+}
+
+vec4 light(vec3 c) {
+  float a = clamp(max(c.r, max(c.g, c.b)), 0.0, 1.0);
+  return vec4(min(c, vec3(a)), a);
+}
 `;
 
 const VERTEX = `
@@ -52,8 +69,8 @@ function compile(gl: WebGLRenderingContext, type: number, source: string): WebGL
 
 /** Builds a full-screen fragment-shader effect. The shader body receives GLSL_COMMON. */
 export function shaderEffect(fragmentBody: string): EffectFactory {
-  return ({ canvas, width, height, intensity }) => {
-    const gl = canvas.getContext("webgl", { antialias: false, premultipliedAlpha: false, powerPreference: "high-performance" });
+  return ({ canvas, width, height, intensity, mirror }) => {
+    const gl = canvas.getContext("webgl", { alpha: true, premultipliedAlpha: true, antialias: false, powerPreference: "high-performance" });
     if (!gl) throw new Error("WebGL is not available");
 
     const program = gl.createProgram()!;
@@ -78,6 +95,7 @@ export function shaderEffect(fragmentBody: string): EffectFactory {
       time: gl.getUniformLocation(program, "u_time"),
       intensity: gl.getUniformLocation(program, "u_intensity"),
       progress: gl.getUniformLocation(program, "u_progress"),
+      mirror: gl.getUniformLocation(program, "u_mirror"),
     };
     let w = width;
     let h = height;
@@ -85,10 +103,13 @@ export function shaderEffect(fragmentBody: string): EffectFactory {
     return {
       frame(t, _dt, progress) {
         gl.viewport(0, 0, w, h);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
         gl.uniform2f(u.res, w, h);
         gl.uniform1f(u.time, t);
         gl.uniform1f(u.intensity, intensity);
         gl.uniform1f(u.progress, progress);
+        gl.uniform1f(u.mirror, mirror ? 1 : 0);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       },
       resize(nw, nh) {

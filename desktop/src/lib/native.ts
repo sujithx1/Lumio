@@ -63,6 +63,9 @@ export interface IncomingEffect {
   sound: boolean;
 }
 
+export type SendZone = "left" | "right";
+export type DisplayMode = "overlay" | "fullscreen";
+
 export interface EffectLaunch {
   eventId: string | null;
   effectId: string;
@@ -70,6 +73,15 @@ export interface EffectLaunch {
   intensity: number;
   sound: boolean;
   fromName: string | null;
+  /** Screen edge the effect enters from (this computer's Send Zone). */
+  edge: SendZone;
+  overlay: boolean;
+}
+
+export interface Settings {
+  sendZone: SendZone;
+  displayMode: DisplayMode;
+  sound: boolean;
 }
 
 export interface ServerStatus {
@@ -120,6 +132,8 @@ export const native = {
   effectLaunch: () => invoke<EffectLaunch>("effect_launch"),
   effectFinished: (completed: boolean) => invoke<void>("effect_finished", { completed }),
   serverStatus: () => invoke<ServerStatus>("server_status"),
+  getSettings: () => invoke<Settings>("get_settings"),
+  updateSettings: (value: Settings) => invoke<Settings>("update_settings", { value }),
   onEvent: (handler: (event: CoreEvent) => void): Promise<UnlistenFn> =>
     listen<CoreEvent>("lumio://event", (e) => handler(e.payload)),
 };

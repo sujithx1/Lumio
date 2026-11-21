@@ -5,6 +5,7 @@ import { formatDate, timeAgo } from "../lib/format";
 import { errorMessage, native, type Peer } from "../lib/native";
 import { connectionTone, PLATFORM_LABEL } from "../lib/status";
 import { toast, useStore } from "../lib/store";
+import { EffectSettings } from "./EffectSettings";
 
 export function Devices({ onPair }: { onPair: () => void }) {
   const snapshot = useStore((s) => s.snapshot);
@@ -19,6 +20,8 @@ export function Devices({ onPair }: { onPair: () => void }) {
       </header>
 
       <ThisDeviceSettings />
+
+      <EffectSettings />
 
       <div>
         <SectionHeader

@@ -46,6 +46,9 @@ export function installMockIpc() {
         }
         case "send_effect":
           return "evt-mock";
+        case "get_settings":
+        case "update_settings":
+          return { sendZone: "right", displayMode: "overlay", sound: true };
         default:
           return null;
       }

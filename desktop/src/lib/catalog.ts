@@ -1,7 +1,7 @@
 import raw from "../../../protocol/effects/catalog.json";
 import type { Platform } from "./native";
 
-export type EffectCategory = "space" | "light" | "nature" | "energy" | "party" | "digital";
+export type EffectCategory = "space" | "light" | "nature" | "energy" | "party" | "digital" | "anime" | "cartoon";
 
 export interface EffectDefinition {
   id: string;
@@ -28,6 +28,8 @@ export const CATEGORY_LABEL: Record<EffectCategory, string> = {
   energy: "Energy",
   party: "Party",
   digital: "Digital",
+  anime: "Anime",
+  cartoon: "Cartoon",
 };
 
 export const formatSeconds = (ms: number) => `${(ms / 1000).toFixed(ms % 1000 === 0 ? 0 : 1)}s`;

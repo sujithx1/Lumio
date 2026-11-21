@@ -14,12 +14,18 @@ function windowLabel(): string | null {
   }
 }
 
-// Dev builds opened in a plain browser can preview an effect with ?effect=<id>&intensity=0.8&duration=6000.
+// Dev builds opened in a plain browser can preview an effect with
+// ?effect=<id>&intensity=0.8&duration=6000&edge=right&overlay=1 (overlay shows a stand-in wallpaper).
 function devPreview(): EffectLaunch | undefined {
   if (!import.meta.env.DEV || windowLabel() !== null) return undefined;
   const q = new URLSearchParams(location.search);
   const effectId = q.get("effect");
   if (!effectId) return undefined;
+  const overlay = q.get("overlay") !== "0";
+  if (overlay) {
+    document.documentElement.style.background =
+      "radial-gradient(120% 90% at 30% 20%, #3b82f6 0%, #1e3a8a 45%, #0b1437 100%)";
+  }
   return {
     eventId: null,
     effectId,
@@ -27,6 +33,8 @@ function devPreview(): EffectLaunch | undefined {
     intensity: Number(q.get("intensity") ?? 0.8),
     sound: false,
     fromName: "Preview",
+    edge: q.get("edge") === "left" ? "left" : "right",
+    overlay,
   };
 }
 

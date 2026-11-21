@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import catalogJson from "../../../protocol/effects/catalog.json";
+import { giantsWall, pirateVoyage, powerAura, spiralOrb } from "./renderers/anime";
 import { celebration, fireworks, lightning, matrix, rainbow } from "./renderers/canvas";
+import { cartoonParade } from "./renderers/cartoon";
+import { cosmicPortal } from "./renderers/portal";
 import { RENDERERS } from "./registry";
 import type { EffectFactory } from "./types";
 
@@ -32,12 +35,28 @@ describe("effect registry", () => {
 });
 
 describe("canvas effects run a full timeline without throwing", () => {
-  const cases: Record<string, EffectFactory> = { rainbow, lightning, celebration, matrix, fireworks };
+  const cases: Record<string, EffectFactory> = {
+    rainbow,
+    lightning,
+    celebration,
+    matrix,
+    fireworks,
+    cosmicPortal,
+    spiralOrb,
+    powerAura,
+    giantsWall,
+    pirateVoyage,
+    cartoonParade,
+  };
   for (const [name, factory] of Object.entries(cases)) {
-    for (const intensity of [0, 0.5, 1]) {
-      test(`${name} @ intensity ${intensity}`, () => {
+    for (const [intensity, mirror] of [
+      [0, false],
+      [0.5, true],
+      [1, false],
+    ] as const) {
+      test(`${name} @ intensity ${intensity}${mirror ? " (right edge)" : ""}`, () => {
         const { canvas, calls } = stubCanvas();
-        const fx = factory({ canvas, width: 1280, height: 800, dpr: 2, intensity, duration: 6000, audio: null });
+        const fx = factory({ canvas, width: 1280, height: 800, dpr: 2, intensity, duration: 6000, audio: null, mirror, overlay: true });
         for (let i = 0; i <= 360; i++) fx.frame(i / 60, 1 / 60, i / 360);
         fx.resize?.(640, 400);
         fx.frame(6.1, 1 / 60, 1);
