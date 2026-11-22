@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../core/engine.dart';
+import '../effects/handoff.dart';
 import '../theme/tokens.g.dart';
 import 'common.dart';
 import 'flick_card.dart';
@@ -32,6 +33,7 @@ class _SendSheetState extends State<SendSheet> {
   late bool _haptics;
   String? _eventId;
   String? _error;
+  final _cardKey = GlobalKey();
 
   @override
   void didChangeDependencies() {
@@ -53,14 +55,23 @@ class _SendSheetState extends State<SendSheet> {
     _eventId = null;
   }
 
+  /// The effect leaves this phone first (a departure over the app, out through the top edge); the
+  /// trigger goes out as it crosses the edge, so the computer's arrival follows it.
   Future<void> _send() async {
     final engine = LumioScope.read(context);
+    final effect = engine.catalog.byId(_effectId)!;
+    final (to, duration, intensity, sound) = (_deviceId!, _duration.round(), _intensity, _haptics);
     setState(() => _error = null);
     try {
-      final id = await engine.sendEffect(_deviceId!, _effectId, _duration.round(), _intensity, _haptics);
-      setState(() => _eventId = id);
+      final id = await departThen(
+        context,
+        effect,
+        () => engine.sendEffect(to, effect.id, duration, intensity, sound),
+        origin: globalCenterOf(_cardKey),
+      );
+      if (mounted) setState(() => _eventId = id);
     } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Bad state: ', ''));
+      if (mounted) setState(() => _error = e.toString().replaceFirst('Bad state: ', ''));
     }
   }
 
@@ -135,6 +146,7 @@ class _SendSheetState extends State<SendSheet> {
             ),
             const SizedBox(height: LumioSpace.lg),
             FlickCard(
+              key: _cardKey,
               effect: effect,
               enabled: target != null && target.online && engine.isOnline && !inFlight,
               hint: target == null

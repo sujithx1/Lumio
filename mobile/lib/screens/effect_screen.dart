@@ -5,6 +5,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../effects/catalog.dart';
+import '../effects/handoff.dart';
 import '../effects/renderers.dart';
 import '../theme/tokens.g.dart';
 
@@ -134,9 +135,20 @@ class _EffectScreenState extends State<EffectScreen> with SingleTickerProviderSt
                     builder: (_, _, _) => ColoredBox(
                       // The dim backdrop fades in and out with the effect.
                       color: Color.fromRGBO(0, 0, 0, 0.6 * _opacity),
-                      child: Opacity(
-                        opacity: _opacity,
-                        child: CustomPaint(painter: _SimPainter(_sim, _elapsed, widget.duration), size: _size),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Opacity(
+                            opacity: _opacity,
+                            child: CustomPaint(painter: _SimPainter(_sim, _elapsed, widget.duration), size: _size),
+                          ),
+                          // The effect arrives from the top edge (the edge facing the sender's computer).
+                          if (_elapsed < arrivalDuration && ArrivalPainter.appliesTo(widget.effect))
+                            CustomPaint(
+                              painter: ArrivalPainter(effect: widget.effect, seconds: _elapsed.inMicroseconds / 1e6),
+                              size: _size,
+                            ),
+                        ],
                       ),
                     ),
                   );

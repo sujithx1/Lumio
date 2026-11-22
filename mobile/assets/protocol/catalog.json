@@ -340,6 +340,23 @@
       ]
     },
     {
+      "id": "tiny-ronin",
+      "name": "Tiny Ronin",
+      "description": "A cute little swordsman dashes in, slices the screen with sparkling sword arcs and cherry petals, bows, and dashes off.",
+      "category": "anime",
+      "defaultDuration": 7000,
+      "minDuration": 4000,
+      "maxDuration": 15000,
+      "defaultIntensity": 0.7,
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": ["macos", "windows", "linux", "android", "ios"],
+      "hasSound": true,
+      "accent": ["#ef4444", "#38bdf8"]
+    },
+    {
       "id": "event-horizon",
       "name": "Event Horizon",
       "description": "A black hole forms near the edge, its glowing disk warping light as it pulls in the stars around it.",

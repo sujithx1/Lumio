@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../app.dart';
 import '../core/engine.dart';
 import '../core/files.dart';
+import '../effects/handoff.dart';
 import '../theme/tokens.g.dart';
 import 'effect_picker.dart';
 import 'flick_card.dart';
@@ -83,10 +84,15 @@ class SendFilesSheet extends StatefulWidget {
 class _SendFilesSheetState extends State<SendFilesSheet> {
   String? _effectId;
   List<String>? _ids;
+  final _cardKey = GlobalKey();
 
+  /// Uploads start right away; the departure plays once for the whole batch.
   void _send() {
     final engine = LumioScope.read(context);
+    final effect = engine.catalog.byId(_effectId ?? engine.settings.fileEffectId) ?? engine.catalog.effects.first;
+    final origin = globalCenterOf(_cardKey);
     setState(() => _ids = engine.sendFiles(widget.deviceId, widget.files, effectId: _effectId));
+    playDeparture(context, effect, origin: origin);
   }
 
   Future<void> _changeEffect() async {
@@ -151,6 +157,7 @@ class _SendFilesSheetState extends State<SendFilesSheet> {
                 ],
               ),
               FlickCard(
+                key: _cardKey,
                 effect: effect,
                 enabled: target != null && target.online && engine.isOnline,
                 hint: target == null

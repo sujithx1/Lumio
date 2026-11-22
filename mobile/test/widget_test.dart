@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -8,6 +9,7 @@ import 'package:lumio/core/api.dart';
 import 'package:lumio/core/engine.dart';
 import 'package:lumio/core/identity.dart';
 import 'package:lumio/effects/catalog.dart';
+import 'package:lumio/effects/handoff.dart';
 import 'package:lumio/effects/renderers.dart';
 import 'package:lumio/protocol/message.dart' show isEffectId;
 import 'package:lumio/widgets/flick_card.dart';
@@ -24,7 +26,7 @@ void main() {
   });
 
   test('catalog ids are valid and every effect has a mobile renderer', () {
-    expect(catalog.effects, hasLength(14));
+    expect(catalog.effects, hasLength(15));
     for (final e in catalog.effects) {
       expect(isEffectId(e.id), isTrue, reason: e.id);
       expect(renderers.containsKey(e.id), isTrue, reason: 'no renderer for ${e.id}');
@@ -45,6 +47,7 @@ void main() {
       'giants-wall',
       'pirate-voyage',
       'cartoon-parade',
+      'tiny-ronin',
     ];
     for (final id in canvasEffects) {
       for (final intensity in [0.0, 0.5, 1.0]) {
@@ -145,5 +148,71 @@ void main() {
     await tester.pumpAndSettle();
     expect(sent, 0);
     expect(find.text('Studio PC is offline'), findsOneWidget);
+  });
+
+  test('departures and arrivals paint every frame without throwing', () {
+    const size = Size(390, 844);
+    for (final e in catalog.effects) {
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      for (var ms = 0; ms <= departureDuration.inMilliseconds; ms += 50) {
+        final time = AlwaysStoppedAnimation<double>(ms / departureDuration.inMilliseconds);
+        DeparturePainter(effect: e, time: time, origin: const Offset(195, 600)).paint(canvas, size);
+        DeparturePainter(effect: e, time: time).paint(canvas, size);
+        ArrivalPainter(effect: e, seconds: ms / 1000).paint(canvas, size);
+      }
+      recorder.endRecording().dispose();
+    }
+    expect(ArrivalPainter.appliesTo(catalog.byId('tiny-ronin')!), isFalse, reason: 'he jumps in himself');
+    expect(ArrivalPainter.appliesTo(catalog.byId('aurora')!), isTrue);
+  });
+
+  testWidgets('the trigger is sent only once the departure crosses the top edge, without blocking taps', (
+    tester,
+  ) async {
+    var sent = 0;
+    var taps = 0;
+    late BuildContext ctx;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) {
+              ctx = context;
+              return Center(
+                child: ElevatedButton(onPressed: () => taps++, child: const Text('Underneath')),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    final result = departThen(ctx, catalog.byId('cosmic-portal')!, () async {
+      sent++;
+      return 'event-id';
+    });
+    await tester.pump();
+    expect(find.byType(CustomPaint), findsWidgets);
+
+    await tester.pump(departureSendDelay - const Duration(milliseconds: 50));
+    expect(sent, 0, reason: 'still on its way to the top edge');
+
+    // The departure is drawn over the app but never swallows touches.
+    await tester.tap(find.text('Underneath'));
+    expect(taps, 1);
+
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(sent, 1);
+    expect(await result, 'event-id');
+
+    // A second send during a departure just goes (no queue, no lock).
+    unawaited(departThen(ctx, catalog.byId('tiny-ronin')!, () async => sent++));
+    await tester.pump(departureSendDelay + const Duration(milliseconds: 10));
+    expect(sent, 2);
+
+    // Both overlays remove themselves.
+    await tester.pumpAndSettle();
+    expect(find.byWidgetPredicate((w) => w is CustomPaint && w.painter is DeparturePainter), findsNothing);
   });
 }

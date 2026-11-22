@@ -7,6 +7,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 
+import 'ronin.dart';
+
 /// One running effect. `update` advances the simulation; `paint` draws the current frame.
 abstract class EffectSim {
   void update(double t, double dt, double progress, Size size) {}
@@ -68,6 +70,7 @@ final Map<String, SimFactory> renderers = {
   'power-aura': (i, h) async => PowerAuraSim(i, h),
   'cartoon-parade': (i, h) async => CartoonParadeSim(i, h),
   'event-horizon': (i, _) => ShaderSim.load('shaders/event_horizon.frag', i),
+  'tiny-ronin': (i, h) async => TinyRoninSim(i, h),
 };
 
 // ------------------------------------------------------------------------------------------ shaders
