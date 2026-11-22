@@ -41,6 +41,7 @@ describe("effect catalog", () => {
       "power-aura",
       "rainbow",
       "spiral-orb",
+      "tiny-ronin",
       "volcano",
     ]);
   });
