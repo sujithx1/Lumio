@@ -31,6 +31,11 @@ class HomeScreen extends StatelessWidget {
           children: [
             Row(
               children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(9),
+                  child: Image.asset('assets/icon/logo.png', width: 36, height: 36, semanticLabel: 'Lumio logo'),
+                ),
+                const SizedBox(width: LumioSpace.md),
                 Expanded(child: Text('Lumio', style: text.headlineMedium)),
                 IconButton.filledTonal(
                   onPressed: engine.isOnline ? onPair : null,

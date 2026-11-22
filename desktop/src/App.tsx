@@ -9,6 +9,7 @@ import { Devices } from "./screens/Devices";
 import { Effects } from "./screens/Effects";
 import { PairDialog } from "./screens/PairDialog";
 import { SendSheet, type SendTarget } from "./screens/SendSheet";
+import { LumioMark } from "./components/LumioMark";
 
 type Screen = "dashboard" | "devices" | "effects";
 
@@ -42,11 +43,7 @@ export default function App() {
         {/* Space for the macOS traffic lights; also the window drag handle. */}
         <div data-tauri-drag-region className="h-12 shrink-0" />
         <div className="flex items-center gap-2.5 px-5 pb-6">
-          <div className="relative h-7 w-7">
-            <div className="absolute inset-0 rounded-pill bg-gradient-to-br from-accent to-accent-alt" />
-            <div className="absolute inset-[5px] rounded-pill bg-bg" />
-            <div className="absolute inset-[9px] rounded-pill bg-gradient-to-br from-accent to-accent-alt" />
-          </div>
+          <LumioMark size={28} />
           <span className="text-[17px] font-semibold tracking-tight">Lumio</span>
         </div>
 

@@ -121,8 +121,14 @@ pub fn run() {
             let quit = MenuItem::with_id(app, "quit", "Quit Lumio", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &quit])?;
             let mut tray = TrayIconBuilder::with_id("lumio").tooltip("Lumio").menu(&menu).show_menu_on_left_click(true);
-            if let Some(icon) = app.default_window_icon() {
-                tray = tray.icon(icon.clone());
+            // A monochrome template image, so macOS tints it to match light and dark menu bars.
+            match tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png")) {
+                Ok(icon) => tray = tray.icon(icon).icon_as_template(true),
+                Err(_) => {
+                    if let Some(icon) = app.default_window_icon() {
+                        tray = tray.icon(icon.clone());
+                    }
+                }
             }
             tray.on_menu_event(|app, event| match event.id.as_ref() {
                 "show" => show_main(app),

@@ -1,0 +1,13 @@
+# Launch screen for iOS and Android: the Lumio star on the app's background colour.
+# Regenerate with: dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#07080c"
+  image: "assets/icon/splash.png"
+  android_12:
+    color: "#07080c"
+    image: "assets/icon/splash-android12.png"
+    icon_background_color: "#07080c"
+  ios: true
+  android: true
+  web: false
+  fullscreen: false

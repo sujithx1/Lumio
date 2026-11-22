@@ -1,0 +1,11 @@
+# Launcher icons for iOS and Android. Source art is drawn by desktop/scripts/icons.ts.
+# Regenerate with: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "assets/icon/icon.png"
+  ios: true
+  remove_alpha_ios: true
+  android: true
+  min_sdk_android: 21
+  adaptive_icon_background: "assets/icon/android-background.png"
+  adaptive_icon_foreground: "assets/icon/android-foreground.png"
+  adaptive_icon_monochrome: "assets/icon/android-foreground.png"
