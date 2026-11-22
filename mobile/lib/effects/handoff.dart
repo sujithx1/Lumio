@@ -4,14 +4,18 @@
 // and leaves through the TOP edge, the edge facing the computer. The EFFECT_TRIGGER is sent only when
 // the departure crosses that edge ([departureSendDelay]), so the computer's arrival follows it.
 //
-// Receiver (this phone): for every effect except Tiny Ronin (who jumps down himself), an ARRIVAL comet
-// drops in from the top edge and bursts as the effect blooms ([ArrivalPainter]).
+// Receiver (this phone): for every effect except the character effects (Tiny Ronin, Boing, Kaze, Pebble and
+// Snooze, who each make their own entrance from the top), an ARRIVAL comet drops in from the top edge and
+// bursts as the effect blooms ([ArrivalPainter]).
+//
+// Character effects also leave in character: each has its own departure instead of the comet.
 import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import 'catalog.dart';
+import 'characters.dart';
 import 'ronin.dart';
 
 /// How long the departure plays on the sender.
@@ -26,7 +30,16 @@ const arrivalDuration = Duration(milliseconds: 850);
 /// Seconds into the arrival when the comet bursts.
 const arrivalBurstAt = 0.5;
 
-const _roninId = 'tiny-ronin';
+typedef _DepartureFn = void Function(Canvas canvas, Size size, Offset origin, double seconds);
+
+/// Effects whose character is its own entrance and has its own departure.
+const Map<String, _DepartureFn> _characterDepartures = {
+  'tiny-ronin': paintRoninDeparture,
+  'boing': paintBoingDeparture,
+  'kaze': paintKazeDeparture,
+  'pebble': paintPebbleDeparture,
+  'snooze': paintSnoozeDeparture,
+};
 
 double _clamp01(double x) => x.clamp(0.0, 1.0);
 double _phase(double t, double a, double b) => _clamp01((t - a) / (b - a));
@@ -120,8 +133,9 @@ class DeparturePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final t = time.value * departureDuration.inMilliseconds / 1000;
     final from = origin ?? Offset(size.width / 2, size.height * 0.72);
-    if (effect.id == _roninId) {
-      paintRoninDeparture(canvas, size, from, t);
+    final character = _characterDepartures[effect.id];
+    if (character != null) {
+      character(canvas, size, from, t);
     } else {
       paintCometDeparture(canvas, size, from, t, effect.accent);
     }
@@ -221,13 +235,13 @@ void paintCometDeparture(Canvas canvas, Size size, Offset from, double t, List<C
 }
 
 /// The receiver's arrival: a comet drops in from the top edge and bursts at [arrivalBurstAt] seconds.
-/// Paints nothing for Tiny Ronin, whose own jump-down is the arrival.
+/// Paints nothing for the character effects, whose own entrance is the arrival.
 class ArrivalPainter extends CustomPainter {
   ArrivalPainter({required this.effect, required this.seconds});
   final EffectDefinition effect;
   final double seconds;
 
-  static bool appliesTo(EffectDefinition effect) => effect.id != _roninId;
+  static bool appliesTo(EffectDefinition effect) => !_characterDepartures.containsKey(effect.id);
 
   @override
   void paint(Canvas canvas, Size size) {

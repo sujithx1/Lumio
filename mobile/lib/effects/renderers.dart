@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 
+import 'characters.dart';
 import 'ronin.dart';
 
 /// One running effect. `update` advances the simulation; `paint` draws the current frame.
@@ -71,6 +72,10 @@ final Map<String, SimFactory> renderers = {
   'cartoon-parade': (i, h) async => CartoonParadeSim(i, h),
   'event-horizon': (i, _) => ShaderSim.load('shaders/event_horizon.frag', i),
   'tiny-ronin': (i, h) async => TinyRoninSim(i, h),
+  'boing': (i, h) async => BoingSim(i, h),
+  'kaze': (i, h) async => KazeSim(i, h),
+  'pebble': (i, h) async => PebbleSim(i, h),
+  'snooze': (i, h) async => SnoozeSim(i, h),
 };
 
 // ------------------------------------------------------------------------------------------ shaders

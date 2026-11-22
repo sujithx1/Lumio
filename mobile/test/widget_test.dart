@@ -26,7 +26,7 @@ void main() {
   });
 
   test('catalog ids are valid and every effect has a mobile renderer', () {
-    expect(catalog.effects, hasLength(15));
+    expect(catalog.effects, hasLength(19));
     for (final e in catalog.effects) {
       expect(isEffectId(e.id), isTrue, reason: e.id);
       expect(renderers.containsKey(e.id), isTrue, reason: 'no renderer for ${e.id}');
@@ -48,6 +48,10 @@ void main() {
       'pirate-voyage',
       'cartoon-parade',
       'tiny-ronin',
+      'boing',
+      'kaze',
+      'pebble',
+      'snooze',
     ];
     for (final id in canvasEffects) {
       for (final intensity in [0.0, 0.5, 1.0]) {
@@ -163,7 +167,9 @@ void main() {
       }
       recorder.endRecording().dispose();
     }
-    expect(ArrivalPainter.appliesTo(catalog.byId('tiny-ronin')!), isFalse, reason: 'he jumps in himself');
+    for (final id in ['tiny-ronin', 'boing', 'kaze', 'pebble', 'snooze']) {
+      expect(ArrivalPainter.appliesTo(catalog.byId(id)!), isFalse, reason: '$id makes their own entrance');
+    }
     expect(ArrivalPainter.appliesTo(catalog.byId('aurora')!), isTrue);
   });
 
