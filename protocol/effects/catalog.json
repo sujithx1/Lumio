@@ -357,6 +357,74 @@
       "accent": ["#ef4444", "#38bdf8"]
     },
     {
+      "id": "boing",
+      "name": "Boing",
+      "description": "A goggled kid in an orange hoodie stretches a springy noodle arm across your screen, lands a giant comic POW, and slingshots away.",
+      "category": "cartoon",
+      "defaultDuration": 7000,
+      "minDuration": 4000,
+      "maxDuration": 15000,
+      "defaultIntensity": 0.7,
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": ["macos", "windows", "linux", "android", "ios"],
+      "hasSound": true,
+      "accent": ["#f97316", "#facc15"]
+    },
+    {
+      "id": "kaze",
+      "name": "Kaze",
+      "description": "A fox-eared swordswoman spins in with two crescent-moon blades and whirls a storm of crossing slashes and leaves.",
+      "category": "anime",
+      "defaultDuration": 7000,
+      "minDuration": 4000,
+      "maxDuration": 15000,
+      "defaultIntensity": 0.7,
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": ["macos", "windows", "linux", "android", "ios"],
+      "hasSound": true,
+      "accent": ["#a855f7", "#22d3ee"]
+    },
+    {
+      "id": "pebble",
+      "name": "Pebble",
+      "description": "A little cadet swings in on a grappling hook and slams the ground; a friendly mossy stone giant rises, stomps, waves, and sinks back down.",
+      "category": "anime",
+      "defaultDuration": 8000,
+      "minDuration": 4000,
+      "maxDuration": 15000,
+      "defaultIntensity": 0.7,
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": ["macos", "windows", "linux", "android", "ios"],
+      "hasSound": true,
+      "accent": ["#65a30d", "#a8a29e"]
+    },
+    {
+      "id": "snooze",
+      "name": "Snooze",
+      "description": "A sleepy cat-eared kid in a cloud cloak sleepwalks in, then wakes with a blue-purple lightning dash and a thunderclap.",
+      "category": "anime",
+      "defaultDuration": 7000,
+      "minDuration": 4000,
+      "maxDuration": 15000,
+      "defaultIntensity": 0.7,
+      "renderer": {
+        "web": "canvas",
+        "flutter": "painter"
+      },
+      "supportedPlatforms": ["macos", "windows", "linux", "android", "ios"],
+      "hasSound": true,
+      "accent": ["#6366f1", "#38bdf8"]
+    },
+    {
       "id": "event-horizon",
       "name": "Event Horizon",
       "description": "A black hole forms near the edge, its glowing disk warping light as it pulls in the stars around it.",
