@@ -50,6 +50,9 @@ Global rules: unknown fields are rejected everywhere; `null` is never a valid va
 | `EFFECT_COMPLETED` | device → device, signed | `{ eventId }` |
 | `EFFECT_FAILED` | device → device, signed | `{ eventId, reason }`, reason ∈ `unknown_effect, expired, duplicate, invalid_signature, not_paired, unsupported, busy, render_error` |
 | `EFFECT_STATUS` | server → sender | `{ eventId, status }`, status ∈ `relayed, receiver_offline, notified, expired, rejected` |
+| `FILE_OFFER` | device → device, signed | `{ transferId, name, size, mime, sha256, effectId }`: name 1–255 chars with no slash, backslash or control characters; size an integer 0–4294967296; sha256 lowercase hex |
+| `FILE_RECEIVED` | device → device, signed | `{ transferId }` |
+| `FILE_FAILED` | device → device, signed | `{ transferId, reason }`, reason ∈ `checksum_mismatch, download_failed, storage_error, too_large, invalid_signature, not_paired, expired, unsupported` |
 | `ERROR` | server → device | `{ code, message (≤256), refId? }` |
 
 `DeviceSummary` = `{ deviceId, name (1–64 chars), platform ∈ macos|windows|linux|android|ios }`.
@@ -75,6 +78,11 @@ All bodies are JSON objects; unknown fields are rejected. Errors are `{ "error":
 | `POST /v1/pairing/:id/approve` | Bearer (initiator) | → `{ pairingId, peer }`; both get `DEVICE_PAIR_APPROVED` |
 | `POST /v1/pairing/:id/reject` | Bearer (initiator) | 204; claimant gets `DEVICE_PAIR_REJECTED` |
 | `GET /v1/effects/recent` | Bearer | → `{ effects: [...] }` (last 20 relayed effects, sent or received) |
+| `GET /v1/transfers/limits` | Bearer | → `{ maxBytes }` |
+| `POST /v1/transfers` | Bearer | `{ to, name, size, mime, sha256 }` → 201 `{ transferId, expiresAt, maxBytes }`. 403 if not paired, 413 over the size limit, 429 over 120/min or 50 waiting |
+| `PUT /v1/transfers/:id/content` | Bearer (sender) | raw bytes → 204. Rejected (and discarded) unless the byte count and SHA-256 match what was declared |
+| `GET /v1/transfers/:id/content` | Bearer (receiver) | → raw bytes, always `application/octet-stream`. 410 once delivered, cancelled or expired |
+| `DELETE /v1/transfers/:id` | Bearer (either side) | cancel; the file is deleted → 204 |
 | `GET /v1/ws` | `AUTH` frame | WebSocket, see below |
 | `GET /health` | – | `{ status, db, version, protocol }` |
 
@@ -86,6 +94,17 @@ The SAS is the first 4 bytes of `SHA-256("lumio-sas-v1|<normalised code>|<initia
 2. Either side sends `HEARTBEAT` every 20 s; the server closes sockets silent for 45 s.
 3. Close codes: 4000 idle, 4001 unauthorised, 4002 replaced by a newer connection of the same device, 4003 device revoked (do not reconnect), 4004 protocol, 4008 flooding. Clients reconnect with exponential backoff (1 s → 30 s) plus jitter.
 4. Relay limits: 30 effects/min per sender, 12 effects/min per sender→receiver pair, 40 frames/10 s per socket.
+
+## Sharing files
+
+Files go through the relay; the WebSocket only carries small signed messages about them.
+
+1. **Sender** hashes the file (SHA-256), `POST /v1/transfers` with its name, size, type and hash, then streams the bytes with `PUT /v1/transfers/:id/content`. The relay checks size and hash before marking the file ready.
+2. **Sender** sends a signed `FILE_OFFER` with the same details plus the effect to play (its "effect for files" setting). The relay forwards it only if it matches the stored file exactly; if the receiver is offline the sender gets `ERROR` "receiver is offline".
+3. **Receiver** runs the checks below (1–5) on the offer, starts the effect (one per burst of files, so a batch of photos plays once), downloads the bytes, and checks size and SHA-256 against the *signed* offer, so a relay cannot swap the file. It saves the file under a sanitised, de-duplicated name in the folder chosen in its settings, then sends `FILE_RECEIVED`, or `FILE_FAILED` with a reason.
+4. The relay deletes the bytes as soon as the receiver answers, either side cancels, or 30 minutes pass.
+
+Limits: 1 GiB per file by default (`MAX_FILE_BYTES`), 120 new files per minute and 50 waiting per sender. Files are not encrypted end to end yet: the relay can read them while they wait (see SECURITY.md).
 
 ## Receiver checks (in order)
 

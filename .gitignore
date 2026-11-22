@@ -23,3 +23,6 @@ desktop/src/styles/tokens.generated.css
 
 # Dev simulator identities
 server/.devsim/
+
+# Files in transit on a local relay
+server/data/

@@ -63,6 +63,10 @@ Phones scan a QR code. Desktops usually cannot, so every pairing also shows a sh
 - **Phone:** iOS and Android do not allow drawing over other apps, so the phone shows effects over Lumio itself on a dim backdrop. Sending is a **flick**: the selected effect becomes a card the user throws upward, toward the computer.
 - Desktop settings (`sendZone`, `displayMode`, `sound`) are local to the computer (`settings.json` in the app data folder); they never travel over the network and the protocol is unchanged.
 
+## Sharing files
+
+Either side can send photos, videos or any file to a paired device. The bytes are uploaded to the relay over HTTP and the receiver downloads them; only a small signed `FILE_OFFER` travels over the WebSocket. The offer names an effect (the sender's **effect for files** setting), which the receiver plays while the file arrives. One effect plays per burst, so twenty photos don't mean twenty animations. Received files go to a folder chosen in settings: `~/Downloads/Lumio` by default on a computer, and **Files › On My iPhone › Lumio › Received** on iPhone, with photos and videos also added to Photos. Details: [PROTOCOL.md](PROTOCOL.md#sharing-files).
+
 ## Delivery model
 
 `sending → relayed → received → completed | failed(reason) | expired | receiver_offline | notified`

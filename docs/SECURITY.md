@@ -1,6 +1,6 @@
 # Security
 
-Lumio lets one device make another device's screen do something. The core rule: **a received message can only select an effect from a fixed, built-in catalog and set bounded parameters. It can never carry code, commands, URLs or file paths.**
+Lumio lets one device make another device's screen do something. The core rule: **a received message can only select an effect from a fixed, built-in catalog and set bounded parameters. It can never carry code, commands, URLs or file paths.** Shared files are data: they are saved, never opened or run automatically.
 
 ## Threat model
 
@@ -16,6 +16,9 @@ Lumio lets one device make another device's screen do something. The core rule: 
 | LAN eavesdropping or spoofing | WSS with self-signed certs pinned at pairing + mutual challenge; mDNS records hold only a version and a rotating opaque id | ❌ LAN mode not built yet; all traffic goes through the relay |
 | Lost or stolen device | Unpair from any paired device; `DELETE /v1/me` revokes a device entirely (sockets closed with 4003, logins refused) | ✅ API (no "revoke" button in the UIs yet) |
 | Webview compromise (desktop) | Strict CSP (`default-src 'self'`, no remote scripts); minimal Tauri capabilities (`core:default` + window dragging) | ✅ |
+| Malicious shared files (path traversal, overwriting files, auto-run) | Names are validated by the schema and relay (no `/`, `\`, control characters, `.`/`..`) and sanitised again by the receiver, which writes to a temporary file and picks a new name instead of overwriting. Files are never opened automatically; the relay always serves them as `application/octet-stream` | ✅ |
+| Swapped or corrupted files | The receiver checks size and SHA-256 against the sender-signed `FILE_OFFER`, so the relay cannot substitute content; mismatches are deleted and reported as `FILE_FAILED` | ✅ |
+| Files sitting on the relay | Only the paired receiver can download; bytes are deleted once delivered, cancelled or after 30 minutes; 1 GiB per file, 120/min and 50 waiting per sender | ✅ Not end-to-end encrypted yet: the relay operator could read files in transit. Planned: encrypt with a key agreed between the two devices |
 | An effect blocking the user's screen | Overlay windows are click-through and never take focus; effects are capped at 15 s; one effect at a time; Full screen mode can be dismissed with a click or Esc | ✅ |
 
 ## Transport

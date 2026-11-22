@@ -49,6 +49,13 @@ Delivery records for effects routed through the relay.
 - `route` (`relay` | `lan`), `status`, `failure_reason`, and timestamps for created, expires, delivered and completed.
 - Rows older than 30 days are pruned hourly by the server.
 
+### `file_transfers`
+Files in transit through the relay (migration `0002_file_transfers`). The bytes are on disk at `FILES_DIR/<id>`, not in Postgres.
+
+- Sender, receiver, `name`, `size`, `mime`, `sha256` as declared by the sender (and re-checked when the bytes arrive).
+- `status`: `created` → `ready` (bytes uploaded and verified) → `offered` → `delivered` | `failed` | `cancelled` | `expired`. The file is deleted when it leaves the open states.
+- `expires_at` is 30 minutes after creation; the server sweeps every 15 s.
+
 ### `device_settings`
 Per-device preferences: accept effects, sound, overlay vs full-screen, do-not-disturb. Replaces the `user_settings` table from the original spec until user accounts exist.
 
