@@ -8,6 +8,10 @@ export interface EffectAudio {
   pop(): void;
   chime(): void;
   rumble(seconds: number): void;
+  /** A bright metallic "shing" (sword slash). */
+  shing(): void;
+  /** A soft footstep. */
+  step(): void;
   dispose(): void;
 }
 
@@ -109,6 +113,41 @@ export function createAudio(enabled: boolean, intensity: number): EffectAudio | 
       filter.frequency.value = 110;
       const gain = ctx.createGain();
       envelope(gain, seconds * 0.3, seconds * 0.4, seconds * 0.3, 1.4);
+      src.connect(filter).connect(gain).connect(master);
+      src.start();
+    },
+    shing() {
+      const t = ctx.currentTime;
+      const src = noise(0.5);
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.Q.value = 2;
+      filter.frequency.setValueAtTime(2400, t);
+      filter.frequency.exponentialRampToValueAtTime(6000, t + 0.18);
+      const gain = ctx.createGain();
+      envelope(gain, 0.01, 0.04, 0.35, 0.7);
+      src.connect(filter).connect(gain).connect(master);
+      src.start();
+      for (const [freq, peak] of [[2637, 0.18], [3951, 0.1]] as const) {
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        const ring = ctx.createGain();
+        ring.gain.setValueAtTime(0.0001, t);
+        ring.gain.exponentialRampToValueAtTime(peak, t + 0.02);
+        ring.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+        osc.connect(ring).connect(master);
+        osc.start(t);
+        osc.stop(t + 0.75);
+      }
+    },
+    step() {
+      const src = noise(0.08);
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 500;
+      const gain = ctx.createGain();
+      envelope(gain, 0.004, 0.01, 0.06, 0.35);
       src.connect(filter).connect(gain).connect(master);
       src.start();
     },

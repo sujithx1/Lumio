@@ -44,7 +44,8 @@ mod tests {
 
     #[test]
     fn bundled_catalog_has_the_launch_effects() {
-        assert_eq!(catalog().len(), 14);
+        assert_eq!(catalog().len(), 15);
+        assert!(effect("tiny-ronin").is_some());
         let portal = effect("cosmic-portal").unwrap();
         assert_eq!(clamp_duration(portal, 100), portal.min_duration);
         assert_eq!(clamp_duration(portal, 99_999), portal.max_duration);

@@ -2,6 +2,7 @@ import { giantsWall, pirateVoyage, powerAura, spiralOrb } from "./renderers/anim
 import { celebration, fireworks, lightning, matrix, rainbow } from "./renderers/canvas";
 import { cartoonParade } from "./renderers/cartoon";
 import { cosmicPortal } from "./renderers/portal";
+import { tinyRonin } from "./renderers/ronin";
 import { aurora, eventHorizon, volcano } from "./renderers/shaders";
 import type { EffectFactory } from "./types";
 
@@ -24,5 +25,6 @@ export const RENDERERS: Readonly<Record<string, EffectFactory>> = {
   "giants-wall": giantsWall,
   "power-aura": powerAura,
   "cartoon-parade": cartoonParade,
+  "tiny-ronin": tinyRonin,
   "event-horizon": eventHorizon,
 };

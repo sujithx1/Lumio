@@ -65,6 +65,8 @@ export interface IncomingEffect {
 
 export type SendZone = "left" | "right";
 export type DisplayMode = "overlay" | "fullscreen";
+/** "arrive": an effect playing on this computer. "depart": the short send-off as this computer sends one. */
+export type EffectPhase = "arrive" | "depart";
 
 export interface EffectLaunch {
   eventId: string | null;
@@ -76,6 +78,7 @@ export interface EffectLaunch {
   /** Screen edge the effect enters from (this computer's Send Zone). */
   edge: SendZone;
   overlay: boolean;
+  phase: EffectPhase;
 }
 
 export interface Settings {

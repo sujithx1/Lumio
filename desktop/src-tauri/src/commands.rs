@@ -131,9 +131,30 @@ pub struct SendRequest {
 }
 
 /// Signs and sends an effect. Delivery progress arrives as `delivery` events.
+///
+/// The effect first leaves this screen (a short departure through the Send Zone edge); the signed
+/// trigger goes out as the departure reaches the edge, so the receiver's arrival follows it.
 #[tauri::command]
-pub fn send_effect(state: State<'_, AppState>, request: SendRequest) -> CmdResult<String> {
-    state.engine.send_effect(&request.device_id, &request.effect_id, request.duration, request.intensity, request.sound)
+pub fn send_effect(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    effects: State<'_, Effects>,
+    settings: State<'_, SettingsStore>,
+    request: SendRequest,
+) -> CmdResult<String> {
+    let (event_id, message) =
+        state.engine.prepare_effect(&request.device_id, &request.effect_id, request.duration, request.intensity, request.sound)?;
+    if effects.depart(&app, &request.effect_id, &settings.get()) {
+        let engine = state.engine.clone();
+        let id = event_id.clone();
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(crate::effects::DEPARTURE_HANDOFF).await;
+            engine.dispatch_effect(&id, message);
+        });
+    } else {
+        state.engine.dispatch_effect(&event_id, message);
+    }
+    Ok(event_id)
 }
 
 #[derive(Deserialize)]
@@ -166,6 +187,7 @@ pub fn preview_effect(
             from_name: None,
             edge: s.send_zone,
             overlay: s.display_mode == DisplayMode::Overlay,
+            phase: crate::effects::Phase::Arrive,
         },
     )
 }
@@ -260,13 +282,19 @@ pub fn list_transfers(state: State<'_, AppState>) -> Vec<Transfer> {
 /// Sends files (e.g. dropped onto the window) to a paired device with this computer's file effect.
 #[tauri::command]
 pub fn send_files(
+    app: AppHandle,
     state: State<'_, AppState>,
+    effects: State<'_, Effects>,
     settings: State<'_, SettingsStore>,
     device_id: String,
     paths: Vec<String>,
 ) -> CmdResult<Vec<String>> {
     let paths: Vec<PathBuf> = paths.into_iter().map(PathBuf::from).filter(|p| p.is_absolute()).collect();
-    state.engine.send_files(&device_id, paths, &settings.get().file_effect)
+    let prefs = settings.get();
+    let keys = state.engine.send_files(&device_id, paths, &prefs.file_effect)?;
+    // One departure per batch; the uploads are not delayed.
+    effects.depart(&app, &prefs.file_effect, &prefs);
+    Ok(keys)
 }
 
 /// Opens a file picker and sends the chosen files. Returns no keys if the user cancelled.
@@ -281,7 +309,10 @@ pub async fn choose_and_send_files(
     let title = name.map(|n| format!("Send files to {n}")).unwrap_or_else(|| "Send files".into());
     let Some(picked) = app.dialog().file().set_title(title).blocking_pick_files() else { return Ok(vec![]) };
     let paths: Vec<PathBuf> = picked.into_iter().filter_map(|p| p.into_path().ok()).collect();
-    state.engine.send_files(&device_id, paths, &settings.get().file_effect)
+    let prefs = settings.get();
+    let keys = state.engine.send_files(&device_id, paths, &prefs.file_effect)?;
+    app.state::<Effects>().depart(&app, &prefs.file_effect, &prefs);
+    Ok(keys)
 }
 
 

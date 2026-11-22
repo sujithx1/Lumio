@@ -3,7 +3,9 @@ import catalogJson from "../../../protocol/effects/catalog.json";
 import { giantsWall, pirateVoyage, powerAura, spiralOrb } from "./renderers/anime";
 import { celebration, fireworks, lightning, matrix, rainbow } from "./renderers/canvas";
 import { cartoonParade } from "./renderers/cartoon";
+import { arrivalComet, departureFor, hasArrivalComet, sparkCometDeparture } from "./handoff";
 import { cosmicPortal } from "./renderers/portal";
+import { roninDeparture, tinyRonin } from "./renderers/ronin";
 import { RENDERERS } from "./registry";
 import type { EffectFactory } from "./types";
 
@@ -14,8 +16,11 @@ function stubCanvas() {
   const ctx = new Proxy({} as Record<string, unknown>, {
     get(target, prop) {
       if (prop in target) return target[prop as string];
-      return (..._args: unknown[]) => {
+      return (...args: unknown[]) => {
         calls++;
+        // Real canvases throw on negative radii; so does the stub.
+        const radii = prop === "arc" ? [args[2]] : prop === "ellipse" ? [args[2], args[3]] : prop === "roundRect" ? [] : [];
+        for (const r of radii) if (typeof r === "number" && r < 0) throw new RangeError(`${String(prop)}: negative radius ${r}`);
         return gradient;
       };
     },
@@ -47,6 +52,7 @@ describe("canvas effects run a full timeline without throwing", () => {
     giantsWall,
     pirateVoyage,
     cartoonParade,
+    tinyRonin,
   };
   for (const [name, factory] of Object.entries(cases)) {
     for (const [intensity, mirror] of [
@@ -65,4 +71,34 @@ describe("canvas effects run a full timeline without throwing", () => {
       });
     }
   }
+});
+
+describe("handoff: departures on the sender, arrival comet on the receiver", () => {
+  const accent = ["#ef4444", "#38bdf8"] as const;
+  const cases: Record<string, EffectFactory> = {
+    sparkCometDeparture: (c) => sparkCometDeparture(c, accent),
+    roninDeparture: (c) => roninDeparture(c),
+    arrivalComet: (c) => arrivalComet(c, accent),
+  };
+  for (const [name, factory] of Object.entries(cases)) {
+    for (const mirror of [false, true]) {
+      test(`${name}${mirror ? " (right edge)" : ""} runs its 1.1 s timeline`, () => {
+        const { canvas, calls } = stubCanvas();
+        const fx = factory({ canvas, width: 1280, height: 800, dpr: 2, intensity: 0.8, duration: 1100, audio: null, mirror, overlay: true });
+        for (let i = 0; i <= 66; i++) fx.frame(i / 60, 1 / 60, i / 66);
+        fx.resize?.(640, 400);
+        fx.frame(1.2, 1 / 60, 1);
+        fx.dispose();
+        expect(calls()).toBeGreaterThan(50);
+      });
+    }
+  }
+
+  test("Tiny Ronin has his own departure and makes his own entrance", () => {
+    expect(departureFor("tiny-ronin")).not.toBe(departureFor("aurora"));
+    expect(departureFor("aurora")).toBe(sparkCometDeparture);
+    expect(departureFor("unknown")).toBe(sparkCometDeparture);
+    expect(hasArrivalComet("tiny-ronin")).toBe(false);
+    expect(hasArrivalComet("cosmic-portal")).toBe(true);
+  });
 });

@@ -345,6 +345,23 @@ impl Engine {
 
     /// Signs and sends an effect to a paired device. Returns the event id.
     pub fn send_effect(&self, to: &str, effect_id: &str, duration: u32, intensity: f64, sound: bool) -> Result<String, String> {
+        let (event_id, message) = self.prepare_effect(to, effect_id, duration, intensity, sound)?;
+        self.push(message)?;
+        Ok(event_id)
+    }
+
+    /// Sends a message built by `prepare_effect`, possibly a moment later (after the departure
+    /// animation). A failure is reported as a `failed` delivery.
+    pub fn dispatch_effect(&self, event_id: &str, message: Value) {
+        if let Err(e) = self.push(message) {
+            self.lock().sent.remove(event_id);
+            self.emit(CoreEvent::Delivery { event_id: event_id.to_string(), status: "failed".into(), detail: Some(e) });
+        }
+    }
+
+    /// Validates and signs an effect for a paired device without sending it yet. Returns the event id
+    /// and the signed message; the UI is told it is `sending`.
+    pub fn prepare_effect(&self, to: &str, effect_id: &str, duration: u32, intensity: f64, sound: bool) -> Result<(String, Value), String> {
         let spec = catalog::effect(effect_id).ok_or("Unknown effect.")?;
         if !self.lock().peers.contains_key(to) {
             return Err("That device is not paired.".into());
@@ -361,9 +378,8 @@ impl Engine {
         )?);
         let event_id = msg["id"].as_str().unwrap_or_default().to_string();
         self.lock().sent.insert(event_id.clone(), to.to_string());
-        self.push(msg)?;
         self.emit(CoreEvent::Delivery { event_id: event_id.clone(), status: "sending".into(), detail: None });
-        Ok(event_id)
+        Ok((event_id, msg))
     }
 
     fn send_ack(&self, kind: &str, to: &str, event_id: &str, reason: Option<EffectFailureReason>) {

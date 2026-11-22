@@ -10,9 +10,25 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 pub const WINDOW_PREFIX: &str = "effect-";
+
+/// How long the sender's departure animation runs.
+pub const DEPARTURE_MS: u32 = 1100;
+/// When the departure reaches the Send Zone edge. The effect is sent then, so the receiver's arrival
+/// follows the departure instead of racing it.
+pub const DEPARTURE_HANDOFF: Duration = Duration::from_millis(650);
+
+/// Whether a window shows an effect arriving on this computer or leaving it for another device.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Phase {
+    #[default]
+    Arrive,
+    Depart,
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -27,6 +43,7 @@ pub struct EffectLaunch {
     /// Screen edge the effect enters from (this computer's Send Zone).
     pub edge: SendZone,
     pub overlay: bool,
+    pub phase: Phase,
 }
 
 impl EffectLaunch {
@@ -40,6 +57,23 @@ impl EffectLaunch {
             from_name: Some(e.from_name),
             edge: settings.send_zone,
             overlay: settings.display_mode == DisplayMode::Overlay,
+            phase: Phase::Arrive,
+        }
+    }
+
+    /// The short animation that plays on this computer as it sends `effect_id`, leaving through the
+    /// Send Zone edge (towards the phone). Always a click-through overlay, whatever the display mode.
+    pub fn departure(effect_id: &str, settings: &Settings) -> Self {
+        Self {
+            event_id: None,
+            effect_id: effect_id.to_string(),
+            duration: DEPARTURE_MS,
+            intensity: 0.8,
+            sound: settings.sound,
+            from_name: None,
+            edge: settings.send_zone,
+            overlay: true,
+            phase: Phase::Depart,
         }
     }
 }
@@ -48,6 +82,8 @@ impl EffectLaunch {
 pub struct Effects {
     launches: Mutex<HashMap<String, EffectLaunch>>,
     counter: AtomicU64,
+    /// When the current departure started; one departure plays at a time.
+    departing_since: Mutex<Option<Instant>>,
 }
 
 impl Effects {
@@ -64,6 +100,28 @@ impl Effects {
         Ok(())
     }
 
+    /// Plays the departure for an effect this computer is sending. Returns false (and plays nothing)
+    /// if a departure is already on screen or the window could not be opened; the caller then sends
+    /// straight away.
+    pub fn depart(&self, app: &AppHandle, effect_id: &str, settings: &Settings) -> bool {
+        {
+            let mut since = self.departing_since.lock().unwrap();
+            let busy = since.is_some_and(|at| at.elapsed() < Duration::from_millis(u64::from(DEPARTURE_MS) + 200));
+            if busy {
+                return false;
+            }
+            *since = Some(Instant::now());
+        }
+        match self.open(app, EffectLaunch::departure(effect_id, settings)) {
+            Ok(()) => true,
+            Err(e) => {
+                log::warn!("{e}");
+                *self.departing_since.lock().unwrap() = None;
+                false
+            }
+        }
+    }
+
     pub fn launch(&self, label: &str) -> Option<EffectLaunch> {
         self.launches.lock().unwrap().get(label).cloned()
     }
@@ -71,6 +129,9 @@ impl Effects {
     /// Records the outcome once per window and acknowledges received effects to their sender.
     pub fn finish(&self, label: &str, engine: &Engine, completed: bool) {
         let launch = self.launches.lock().unwrap().remove(label);
+        if launch.as_ref().is_some_and(|l| l.phase == Phase::Depart) {
+            *self.departing_since.lock().unwrap() = None;
+        }
         if let Some(event_id) = launch.and_then(|l| l.event_id) {
             engine.finish_incoming(&event_id, completed);
         }
@@ -127,4 +188,25 @@ fn build_overlay(app: &AppHandle, label: &str) -> tauri::Result<()> {
     // Clicks and scrolling pass straight through to whatever is underneath.
     window.set_ignore_cursor_events(true)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn departures_are_click_through_overlays_towards_the_send_zone() {
+        let settings = Settings { send_zone: SendZone::Left, display_mode: DisplayMode::Fullscreen, sound: false, ..Settings::default() };
+        let d = EffectLaunch::departure("tiny-ronin", &settings);
+        assert!(d.overlay, "departures never take over the sender's screen");
+        assert_eq!(d.phase, Phase::Depart);
+        assert_eq!(d.edge, SendZone::Left);
+        assert_eq!(d.duration, DEPARTURE_MS);
+        assert!(d.event_id.is_none() && !d.sound);
+        assert!(u128::from(DEPARTURE_MS) > DEPARTURE_HANDOFF.as_millis());
+
+        let json = serde_json::to_value(&d).unwrap();
+        assert_eq!(json["phase"], "depart");
+        assert_eq!(json["edge"], "left");
+    }
 }
