@@ -4,7 +4,7 @@ import { Button, Card, EmptyState, Modal, SectionHeader, StatusDot } from "../co
 import { formatDate, timeAgo } from "../lib/format";
 import { errorMessage, native, type Peer } from "../lib/native";
 import { connectionTone, PLATFORM_LABEL } from "../lib/status";
-import { toast, useStore } from "../lib/store";
+import { chooseAndSendFiles, toast, useStore } from "../lib/store";
 import { EffectSettings } from "./EffectSettings";
 
 export function Devices({ onPair }: { onPair: () => void }) {
@@ -47,7 +47,7 @@ export function Devices({ onPair }: { onPair: () => void }) {
           ) : (
             <ul className="divide-y divide-border">
               {peers.map((p) => (
-                <li key={p.deviceId} className="flex items-center gap-4 px-5 py-4">
+                <li key={p.deviceId} data-drop-device={p.online ? p.deviceId : undefined} className="flex items-center gap-4 px-5 py-4">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-surface-raised hairline">
                     <Icon name={platformIcon(p.platform)} size={19} />
                   </div>
@@ -64,6 +64,15 @@ export function Devices({ onPair }: { onPair: () => void }) {
                     </p>
                     <p className="mt-0.5 text-fg-faint">{p.online ? "Via relay" : p.lastSeenAt ? `Last seen ${timeAgo(p.lastSeenAt)}` : "Never seen"}</p>
                   </div>
+                  <Button
+                    variant="ghost"
+                    icon="upload"
+                    disabled={!p.online || snapshot?.connection !== "online"}
+                    title={p.online ? `Send files to ${p.name}` : "Offline"}
+                    onClick={() => void chooseAndSendFiles(p.deviceId)}
+                  >
+                    Send files…
+                  </Button>
                   <Button variant="ghost" icon="trash" onClick={() => setRemoving(p)}>
                     Remove
                   </Button>

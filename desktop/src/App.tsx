@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { DropOverlay } from "./components/DropOverlay";
 import { Icon, type IconName } from "./components/Icon";
 import { StatusDot, Toasts } from "./components/ui";
 import { connectionTone } from "./lib/status";
@@ -95,6 +96,7 @@ export default function App() {
 
       <PairDialog open={pairOpen} onClose={() => setPairOpen(false)} />
       <SendSheet target={sendTarget} onClose={() => setSendTarget(null)} />
+      <DropOverlay />
       <Toasts />
     </div>
   );

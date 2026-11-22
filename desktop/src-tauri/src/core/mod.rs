@@ -1,9 +1,10 @@
-//! Lumio client core: identity, server API, relay connection and effect handling.
+//! Lumio client core: identity, server API, relay connection, effects and file sharing.
 //! Independent of Tauri so it can be tested headless (see tests/relay_e2e.rs).
 
 pub mod api;
 pub mod catalog;
 pub mod engine;
+pub mod files;
 pub mod identity;
 pub mod relay;
 

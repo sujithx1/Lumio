@@ -168,6 +168,46 @@ pub struct EffectStatusPayload {
     pub status: EffectRelayStatus,
 }
 
+/// Largest file size a FILE_OFFER may declare (4 GiB).
+pub const MAX_FILE_SIZE: u64 = 4_294_967_296;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FileOfferPayload {
+    pub transfer_id: String,
+    pub name: String,
+    pub size: u64,
+    pub mime: String,
+    pub sha256: String,
+    pub effect_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TransferRef {
+    pub transfer_id: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FileFailureReason {
+    ChecksumMismatch,
+    DownloadFailed,
+    StorageError,
+    TooLarge,
+    InvalidSignature,
+    NotPaired,
+    Expired,
+    Unsupported,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FileFailedPayload {
+    pub transfer_id: String,
+    pub reason: FileFailureReason,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCode {
@@ -204,6 +244,9 @@ pub enum Body {
     EffectCompleted(EventRef),
     EffectFailed(EffectFailedPayload),
     EffectStatus(EffectStatusPayload),
+    FileOffer(FileOfferPayload),
+    FileReceived(TransferRef),
+    FileFailed(FileFailedPayload),
     Error(ErrorPayload),
 }
 
@@ -399,6 +442,29 @@ fn parse_body(raw: &RawEnvelope) -> Result<Body, ParseError> {
             check(is_uuid(&p.event_id), "eventId")?;
             Body::EffectStatus(p)
         }
+        "FILE_OFFER" => {
+            signed()?;
+            let p: FileOfferPayload = payload(raw)?;
+            check(is_uuid(&p.transfer_id), "transferId")?;
+            check(is_file_name(&p.name), "name")?;
+            check(p.size <= MAX_FILE_SIZE, "size")?;
+            check(is_mime(&p.mime), "mime")?;
+            check(is_sha256(&p.sha256), "sha256")?;
+            check(is_effect_id(&p.effect_id), "effectId")?;
+            Body::FileOffer(p)
+        }
+        "FILE_RECEIVED" => {
+            signed()?;
+            let p: TransferRef = payload(raw)?;
+            check(is_uuid(&p.transfer_id), "transferId")?;
+            Body::FileReceived(p)
+        }
+        "FILE_FAILED" => {
+            signed()?;
+            let p: FileFailedPayload = payload(raw)?;
+            check(is_uuid(&p.transfer_id), "transferId")?;
+            Body::FileFailed(p)
+        }
         "ERROR" => {
             server_only()?;
             let p: ErrorPayload = payload(raw)?;
@@ -461,6 +527,27 @@ pub fn is_effect_id(s: &str) -> bool {
     !s.is_empty()
         && s.len() <= 48
         && s.split('-').all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit()))
+}
+
+/// Schema `FileName`: 1..=255 characters, no control characters, no `/` or `\\`.
+/// Receivers still sanitise names before touching the disk (see `core::files::sanitize_file_name`).
+pub fn is_file_name(s: &str) -> bool {
+    len_between(s, 1, 255) && !s.chars().any(|c| c.is_ascii_control() || c == '/' || c == '\\')
+}
+
+/// Schema `MimeType`: `type/subtype` from `[A-Za-z0-9.+_-]`, each part starting alphanumeric, at most 127 bytes.
+pub fn is_mime(s: &str) -> bool {
+    let part = |p: &str| {
+        let mut bytes = p.bytes();
+        bytes.next().is_some_and(|b| b.is_ascii_alphanumeric())
+            && bytes.all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'+' | b'_' | b'-'))
+    };
+    s.len() <= 127 && s.split_once('/').is_some_and(|(t, sub)| part(t) && part(sub))
+}
+
+/// Lowercase hex SHA-256.
+pub fn is_sha256(s: &str) -> bool {
+    s.len() == 64 && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
 /// RFC 8785 (JCS) canonical JSON for the value shapes Lumio uses.
@@ -604,6 +691,33 @@ mod tests {
     fn canonical_numbers_follow_ecmascript() {
         let v: Value = serde_json::from_str(r#"{"b":1.0,"a":0.35,"c":1e-7,"d":-0.5,"e":12}"#).unwrap();
         assert_eq!(canonicalize(&v), r#"{"a":0.35,"b":1,"c":1e-7,"d":-0.5,"e":12}"#);
+    }
+
+    #[test]
+    fn parses_file_offer_payload() {
+        let (_, msg) = fixtures("valid").into_iter().find(|(n, _)| n == "file-offer.json").unwrap();
+        match parse_message(&msg.to_string()).unwrap().body {
+            Body::FileOffer(p) => {
+                assert_eq!(p.name, "Beach day.jpg");
+                assert_eq!(p.size, 2_481_903);
+                assert_eq!(p.effect_id, "pirate-voyage");
+            }
+            other => panic!("unexpected body {other:?}"),
+        }
+    }
+
+    #[test]
+    fn file_field_rules() {
+        assert!(is_file_name("Résumé – 履歴書.pdf"));
+        assert!(!is_file_name(""));
+        assert!(!is_file_name("a/b"));
+        assert!(!is_file_name("a\\b"));
+        assert!(!is_file_name("a\u{7f}b"));
+        assert!(is_file_name(&"a".repeat(255)));
+        assert!(!is_file_name(&"a".repeat(256)));
+        assert!(is_mime("image/jpeg") && is_mime("application/vnd.ms-excel") && is_mime("image/svg+xml"));
+        assert!(!is_mime("text/html; charset=utf-8") && !is_mime("image") && !is_mime("/x") && !is_mime("a/b/c"));
+        assert!(is_sha256(&"a".repeat(64)) && !is_sha256(&"A".repeat(64)) && !is_sha256("abc"));
     }
 
     #[test]

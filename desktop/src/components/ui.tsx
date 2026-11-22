@@ -204,6 +204,18 @@ export function Toasts() {
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-medium">{t.title}</p>
             {t.body && <p className="mt-0.5 text-[12px] text-fg-muted">{t.body}</p>}
+            {t.action && (
+              <button
+                type="button"
+                onClick={() => {
+                  t.action!.run();
+                  dismissToast(t.id);
+                }}
+                className="mt-2 text-[12px] font-medium text-accent-alt transition hover:text-fg"
+              >
+                {t.action.label}
+              </button>
+            )}
           </div>
           <button type="button" onClick={() => dismissToast(t.id)} className="text-fg-faint hover:text-fg" aria-label="Dismiss">
             <Icon name="x" size={14} />

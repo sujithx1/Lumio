@@ -71,12 +71,17 @@ pub fn run() {
                 .level_for("tokio_tungstenite", log::LevelFilter::Warn)
                 .build(),
         )
+        // Used from Rust commands only (file pickers, reveal in Finder); no JS permissions are granted.
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(effects::Effects::default())
         .setup(|app| {
             let profile = profile();
             let identity = Arc::new(open_identity(app, &profile)?);
             let data_dir = app.path().app_data_dir()?.join(&profile);
-            app.manage(settings::SettingsStore::load(data_dir.join("settings.json")));
+            let store = settings::SettingsStore::load(data_dir.join("settings.json"));
+            let download_dir = store.get().resolved_download_dir(&commands::downloads_dir(app.handle()));
+            app.manage(store);
             let server_url = std::env::var("LUMIO_SERVER_URL").unwrap_or_else(|_| "http://localhost:8787".into());
             let app_version = app.package_info().version.to_string();
             let api = Arc::new(ApiClient::new(
@@ -85,6 +90,7 @@ pub fn run() {
                 DeviceInfo { name: device_name(&profile), platform: platform().into(), app_version: app_version.clone() },
             ));
             let (engine, mut events, outgoing) = Engine::new(api, identity);
+            engine.set_download_dir(download_dir);
             app.manage(commands::AppState::new(engine.clone(), platform(), app_version));
             log::info!("Lumio starting (profile {profile}, server {server_url})");
 
@@ -158,6 +164,12 @@ pub fn run() {
             commands::server_status,
             commands::get_settings,
             commands::update_settings,
+            commands::files_info,
+            commands::choose_download_dir,
+            commands::reveal_file,
+            commands::list_transfers,
+            commands::send_files,
+            commands::choose_and_send_files,
         ])
         .build(tauri::generate_context!())
         .expect("error while building Lumio");

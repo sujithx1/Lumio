@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
 import { Icon } from "../components/Icon";
-import { Card, SectionHeader, Toggle } from "../components/ui";
-import { errorMessage, native, type DisplayMode, type SendZone, type Settings } from "../lib/native";
-import { toast } from "../lib/store";
+import { Button, Card, SectionHeader, Toggle } from "../components/ui";
+import { catalog } from "../lib/catalog";
+import { errorMessage, native, type DisplayMode, type FilesInfo, type SendZone, type Settings } from "../lib/native";
+import { revealFile, toast } from "../lib/store";
 
-/** How effects appear on this computer: Send Zone edge, overlay vs full screen, sound. */
+/** How effects appear on this computer: Send Zone edge, overlay vs full screen, sound; and file sharing. */
 export function EffectSettings() {
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [files, setFiles] = useState<FilesInfo | null>(null);
+
+  const loadFiles = () => native.filesInfo().then(setFiles).catch(() => setFiles(null));
 
   useEffect(() => {
     native.getSettings().then(setSettings).catch(() => setSettings(null));
+    void loadFiles();
   }, []);
 
   const save = async (patch: Partial<Settings>) => {
@@ -18,8 +23,21 @@ export function EffectSettings() {
     setSettings(next);
     try {
       setSettings(await native.updateSettings(next));
+      if ("downloadDir" in patch) void loadFiles();
     } catch (err) {
       toast({ tone: "danger", title: "Couldn't save settings", body: errorMessage(err) });
+    }
+  };
+
+  const chooseFolder = async () => {
+    try {
+      const saved = await native.chooseDownloadDir();
+      if (saved) {
+        setSettings(saved);
+        void loadFiles();
+      }
+    } catch (err) {
+      toast({ tone: "danger", title: "Couldn't use that folder", body: errorMessage(err) });
     }
   };
 
@@ -87,8 +105,78 @@ export function EffectSettings() {
           <Toggle label="Play effect sounds on this computer" checked={settings.sound} onChange={(sound) => save({ sound })} />
         </div>
       </Card>
+
+      <div className="mt-9">
+        <SectionHeader title="Sharing files" />
+        <Card className="divide-y divide-border">
+          <div className="flex items-center gap-6 px-5 py-5">
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-medium">Save received files to</p>
+              <p className="mt-1 truncate font-mono text-[12px] text-fg-muted select-text" title={files?.downloadDir}>
+                {files ? displayPath(files.downloadDir) : "…"}
+              </p>
+              {settings.downloadDir && (
+                <button
+                  type="button"
+                  onClick={() => save({ downloadDir: null })}
+                  className="mt-1.5 text-[12px] text-fg-faint transition hover:text-fg"
+                >
+                  Use {files ? displayPath(files.defaultDownloadDir) : "Downloads/Lumio"} instead
+                </button>
+              )}
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button variant="ghost" icon="folder" onClick={() => void revealFile(null)}>
+                Show in Finder
+              </Button>
+              <Button variant="ghost" onClick={() => void chooseFolder()}>
+                Change…
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-center gap-6 px-5 py-5">
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-medium">Effect when you send files</p>
+              <p className="mt-1 text-[12px] leading-relaxed text-fg-muted">
+                Plays on the other device as your files arrive. A batch of files plays it once.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <select
+                aria-label="Effect when you send files"
+                value={settings.fileEffect}
+                onChange={(e) => save({ fileEffect: e.target.value })}
+                className="rounded-md bg-bg px-3 py-2 text-[13px] text-fg outline-none hairline focus:border-accent"
+              >
+                {catalog.effects.map((effect) => (
+                  <option key={effect.id} value={effect.id}>
+                    {effect.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() =>
+                  native
+                    .previewEffect({ effectId: settings.fileEffect, duration: 6000, intensity: 0.8, sound: true })
+                    .catch((err) => toast({ tone: "danger", title: errorMessage(err) }))
+                }
+                className="flex items-center gap-1.5 text-[12px] text-fg-muted transition hover:text-fg"
+              >
+                <Icon name="sparkles" size={14} /> Preview
+              </button>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   );
+}
+
+/** /Users/me/Downloads/Lumio -> ~/Downloads/Lumio */
+function displayPath(path: string): string {
+  const m = path.match(/^\/Users\/[^/]+(\/.*)?$/);
+  return m ? `~${m[1] ?? ""}` : path;
 }
 
 /** A tiny laptop diagram with the phone on one side. */

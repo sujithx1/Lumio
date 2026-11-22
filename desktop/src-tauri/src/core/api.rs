@@ -74,6 +74,14 @@ pub struct RecentEffect {
     pub at: u64,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransferCreated {
+    pub transfer_id: String,
+    pub expires_at: u64,
+    pub max_bytes: u64,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct ApiError {
     pub status: u16,
@@ -99,6 +107,9 @@ impl fmt::Display for ApiError {
 }
 
 impl std::error::Error for ApiError {}
+
+/// Uploads and downloads may take a long time; they only fail when the connection stalls.
+const TRANSFER_TIMEOUT: Duration = Duration::from_secs(6 * 60 * 60);
 
 /// Refresh the session this long before it expires.
 const SESSION_REFRESH_MARGIN_MS: u64 = 60_000;
@@ -233,6 +244,58 @@ impl ApiClient {
 
     pub async fn reject_pairing(&self, pairing_id: &str) -> Result<(), ApiError> {
         self.request(reqwest::Method::POST, &format!("/v1/pairing/{pairing_id}/reject"), None).await
+    }
+
+    /// Registers a file with the relay before uploading it.
+    pub async fn create_transfer(&self, to: &str, name: &str, size: u64, mime: &str, sha256: &str) -> Result<TransferCreated, ApiError> {
+        self.request(
+            reqwest::Method::POST,
+            "/v1/transfers",
+            Some(json!({ "to": to, "name": name, "size": size, "mime": mime, "sha256": sha256 })),
+        )
+        .await
+    }
+
+    /// Streams a file's bytes to the relay. `body` must yield exactly the declared size.
+    pub async fn upload_transfer(&self, transfer_id: &str, size: u64, body: reqwest::Body) -> Result<(), ApiError> {
+        let session = self.session().await?;
+        let res = self
+            .http
+            .put(format!("{}/v1/transfers/{transfer_id}/content", self.base))
+            .bearer_auth(&session.token)
+            .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
+            .header(reqwest::header::CONTENT_LENGTH, size)
+            .timeout(TRANSFER_TIMEOUT)
+            .body(body)
+            .send()
+            .await
+            .map_err(ApiError::network)?;
+        Self::decode::<Value>(res).await.map(|_| ())
+    }
+
+    /// Opens the byte stream of a file offered to this device.
+    pub async fn download_transfer(&self, transfer_id: &str) -> Result<reqwest::Response, ApiError> {
+        let session = self.session().await?;
+        let res = self
+            .http
+            .get(format!("{}/v1/transfers/{transfer_id}/content", self.base))
+            .bearer_auth(&session.token)
+            .timeout(TRANSFER_TIMEOUT)
+            .send()
+            .await
+            .map_err(ApiError::network)?;
+        if res.status().is_success() {
+            return Ok(res);
+        }
+        Err(Self::decode::<Value>(res).await.err().unwrap_or(ApiError {
+            status: 0,
+            code: "error".into(),
+            message: "The server returned an error.".into(),
+        }))
+    }
+
+    pub async fn cancel_transfer(&self, transfer_id: &str) -> Result<(), ApiError> {
+        self.request::<Value>(reqwest::Method::DELETE, &format!("/v1/transfers/{transfer_id}"), None).await.map(|_| ())
     }
 
     pub async fn recent_effects(&self) -> Result<Vec<RecentEffect>, ApiError> {

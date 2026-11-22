@@ -1,6 +1,7 @@
 import { useRef, useSyncExternalStore } from "react";
 import { catalog } from "./catalog";
-import { native, type CoreEvent, type DeviceSummary, type RecentEffect, type Snapshot } from "./native";
+import { formatBytes } from "./format";
+import { errorMessage, native, type CoreEvent, type DeviceSummary, type RecentEffect, type Snapshot, type Transfer } from "./native";
 
 export type DeliveryStatus = "sending" | "relayed" | "received" | "completed" | "failed" | "receiver_offline" | "expired" | "rejected" | "notified";
 
@@ -15,6 +16,7 @@ export interface Toast {
   tone: "info" | "success" | "warning" | "danger";
   title: string;
   body?: string;
+  action?: { label: string; run: () => void };
 }
 
 export interface PairRequest {
@@ -31,6 +33,8 @@ interface State {
   lastPairApproved: DeviceSummary | null;
   lastPairRejected: string | null;
   toasts: Toast[];
+  /** Recent file transfers, newest first. */
+  transfers: Transfer[];
 }
 
 let state: State = {
@@ -41,6 +45,7 @@ let state: State = {
   lastPairApproved: null,
   lastPairRejected: null,
   toasts: [],
+  transfers: [],
 };
 const listeners = new Set<() => void>();
 
@@ -58,6 +63,51 @@ export function toast(t: Omit<Toast, "id">, ttlMs = 4500) {
 export const dismissToast = (id: number) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
 
 const effectName = (id: string) => catalog.effects.find((e) => e.id === id)?.name ?? id;
+
+export const revealFile = (path: string | null) =>
+  native.revealFile(path).catch((err) => toast({ tone: "warning", title: errorMessage(err) }));
+
+/**
+ * Files often arrive in batches; one toast per batch instead of one per file.
+ * Keyed by peer + outcome, flushed shortly after the last file of the batch settles.
+ */
+const pendingToasts = new Map<string, { transfers: Transfer[]; timer: ReturnType<typeof setTimeout> }>();
+function batchToast(t: Transfer) {
+  const key = `${t.peerDeviceId}:${t.status}`;
+  const entry = pendingToasts.get(key);
+  if (entry) clearTimeout(entry.timer);
+  const transfers = [...(entry?.transfers ?? []), t];
+  const timer = setTimeout(() => {
+    pendingToasts.delete(key);
+    const one = transfers.length === 1 ? transfers[0]! : null;
+    const what = one ? one.name : `${transfers.length} files`;
+    if (t.status === "saved") {
+      const last = transfers[transfers.length - 1]!;
+      toast(
+        {
+          tone: "success",
+          title: `Received ${what} from ${t.peerName}`,
+          body: one ? formatBytes(one.size) : undefined,
+          action: { label: "Show in Finder", run: () => void revealFile(last.path) },
+        },
+        7000,
+      );
+    } else if (t.status === "delivered") {
+      toast({ tone: "success", title: `${t.peerName} received ${what}` });
+    }
+  }, 900);
+  pendingToasts.set(key, { transfers, timer });
+}
+
+function onTransfer(t: Transfer) {
+  const previous = state.transfers.find((x) => x.key === t.key);
+  set((s) => ({ transfers: [t, ...s.transfers.filter((x) => x.key !== t.key)].slice(0, 100) }));
+  if (previous?.status === t.status) return;
+  if (t.status === "saved" || t.status === "delivered") batchToast(t);
+  if (t.status === "failed") {
+    toast({ tone: "danger", title: t.direction === "send" ? `Couldn't send ${t.name}` : `Couldn't receive ${t.name}`, body: t.detail ?? undefined }, 7000);
+  }
+}
 
 export async function refreshRecent() {
   try {
@@ -134,6 +184,9 @@ function onEvent(e: CoreEvent) {
       if (status === "failed") toast({ tone: "danger", title: "Effect not shown", body: (e.detail && (REASONS[e.detail] ?? e.detail)) ?? undefined });
       break;
     }
+    case "transfer":
+      onTransfer(e.transfer);
+      break;
     case "error":
       toast({ tone: "danger", title: e.message });
       break;
@@ -148,6 +201,27 @@ export async function startStore() {
   await native.onEvent(onEvent);
   set({ snapshot: await native.snapshot() });
   void refreshRecent();
+  void native
+    .listTransfers()
+    .then((transfers) => set({ transfers }))
+    .catch(() => {});
+}
+
+/** Opens a file picker and sends the chosen files to a device with this computer's file effect. */
+export async function chooseAndSendFiles(deviceId: string) {
+  try {
+    await native.chooseAndSendFiles(deviceId);
+  } catch (err) {
+    toast({ tone: "danger", title: "Couldn't send files", body: errorMessage(err) });
+  }
+}
+
+export async function sendFiles(deviceId: string, paths: string[]) {
+  try {
+    await native.sendFiles(deviceId, paths);
+  } catch (err) {
+    toast({ tone: "danger", title: "Couldn't send files", body: errorMessage(err) });
+  }
 }
 
 export const actions = {

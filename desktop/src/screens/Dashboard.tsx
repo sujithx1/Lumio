@@ -4,7 +4,8 @@ import { Button, Card, EmptyState, Pill, SectionHeader, StatusDot } from "../com
 import { catalog } from "../lib/catalog";
 import { timeAgo } from "../lib/format";
 import { connectionTone, PLATFORM_LABEL, STATUS_LABEL } from "../lib/status";
-import { actions, useStore } from "../lib/store";
+import { Transfers } from "../components/Transfers";
+import { actions, chooseAndSendFiles, useStore } from "../lib/store";
 import type { SendTarget } from "./SendSheet";
 
 interface Props {
@@ -61,9 +62,21 @@ export function Dashboard({ onPair, onSend }: Props) {
                     {PLATFORM_LABEL[p.platform]} · {p.online ? "Online" : p.lastSeenAt ? `Seen ${timeAgo(p.lastSeenAt)}` : "Offline"}
                   </p>
                 </div>
-                <Button variant="ghost" icon="send" disabled={!p.online} onClick={() => onSend({ deviceId: p.deviceId })} title={p.online ? undefined : "Offline"}>
-                  Send
-                </Button>
+                <div className="flex shrink-0 gap-1.5">
+                  <button
+                    type="button"
+                    aria-label={`Send files to ${p.name}`}
+                    title={p.online ? "Send files" : "Offline"}
+                    disabled={!p.online}
+                    onClick={() => void chooseAndSendFiles(p.deviceId)}
+                    className="grid h-9 w-9 place-items-center rounded-md bg-surface-raised text-fg-muted transition hairline hover:bg-white/5 hover:text-fg disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Icon name="upload" size={16} />
+                  </button>
+                  <Button variant="ghost" icon="send" disabled={!p.online} onClick={() => onSend({ deviceId: p.deviceId })} title={p.online ? undefined : "Offline"}>
+                    Send
+                  </Button>
+                </div>
               </Card>
             ))}
           </div>
@@ -87,6 +100,8 @@ export function Dashboard({ onPair, onSend }: Props) {
           ))}
         </div>
       </div>
+
+      {peers.length > 0 && <Transfers />}
 
       <div>
         <SectionHeader title="Recent effects" />

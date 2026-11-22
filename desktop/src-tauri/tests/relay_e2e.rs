@@ -4,7 +4,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 use lumio_desktop_lib::core::api::{ApiClient, DeviceInfo};
-use lumio_desktop_lib::core::engine::{ConnectionState, CoreEvent, Engine};
+use lumio_desktop_lib::core::engine::{ConnectionState, CoreEvent, Engine, TransferDirection, TransferStatus};
 use lumio_desktop_lib::core::identity::{Identity, KeyStore, MemoryStore};
 use lumio_desktop_lib::core::relay;
 use tokio::sync::mpsc::UnboundedReceiver;
@@ -133,6 +133,77 @@ async fn pair_send_receive_complete_and_unpair() {
     // Recent effects are recorded on the server.
     let recent = mac.engine.api().recent_effects().await.unwrap();
     assert!(recent.iter().any(|r| r.event_id == event_id && r.status == "completed"));
+
+    // Files: Mac sends two files; PC plays one effect for the burst, verifies and saves both.
+    let tmp = std::env::temp_dir().join(format!("lumio-e2e-{}", uuid::Uuid::now_v7()));
+    let (outbox, inbox) = (tmp.join("out"), tmp.join("in"));
+    std::fs::create_dir_all(&outbox).unwrap();
+    std::fs::create_dir_all(&inbox).unwrap();
+    pc.engine.set_download_dir(inbox.clone());
+    let photo: Vec<u8> = (0..700_000u32).map(|i| (i.wrapping_mul(2_654_435_761) >> 13) as u8).collect();
+    let photo_path = outbox.join("Beach day – 海.jpg");
+    std::fs::write(&photo_path, &photo).unwrap();
+    let note_path = outbox.join("note.txt");
+    std::fs::write(&note_path, b"see you soon").unwrap();
+    std::fs::write(inbox.join("note.txt"), b"already here").unwrap();
+
+    let keys = mac.engine.send_files(&pc_id, vec![photo_path.clone(), note_path.clone()], "pirate-voyage").unwrap();
+    assert_eq!(keys.len(), 2);
+    let file_effect = pc
+        .expect("file effect", |e| match e {
+            CoreEvent::EffectIncoming { effect } => Some(effect.clone()),
+            _ => None,
+        })
+        .await;
+    assert_eq!(file_effect.effect_id, "pirate-voyage");
+    assert_eq!(file_effect.from_name, "Test Mac");
+
+    let mut saved = Vec::new();
+    let mut effects_seen = 0;
+    while saved.len() < 2 {
+        let event = pc
+            .expect("saved files", |e| match e {
+                CoreEvent::Transfer { transfer } if transfer.status == TransferStatus::Saved => Some(Ok(transfer.clone())),
+                CoreEvent::Transfer { transfer } if transfer.status == TransferStatus::Failed => Some(Err(transfer.detail.clone())),
+                CoreEvent::EffectIncoming { .. } => Some(Err(Some("effect".into()))),
+                _ => None,
+            })
+            .await;
+        match event {
+            Ok(t) => saved.push(t),
+            Err(Some(d)) if d == "effect" => effects_seen += 1,
+            Err(d) => panic!("receiving failed: {d:?}"),
+        }
+    }
+    assert_eq!(effects_seen, 0, "a burst of files plays one effect");
+    for t in &saved {
+        assert_eq!(t.direction, TransferDirection::Receive);
+        assert_eq!(t.peer_name, "Test Mac");
+    }
+    let photo_saved = saved.iter().find(|t| t.name == "Beach day – 海.jpg").expect("photo saved");
+    assert_eq!(std::fs::read(photo_saved.path.as_ref().unwrap()).unwrap(), photo);
+    let note_saved = saved.iter().find(|t| t.name == "note.txt").expect("note saved");
+    assert_eq!(note_saved.path.as_deref(), Some(inbox.join("note (1).txt").to_str().unwrap()), "existing files are never overwritten");
+    assert_eq!(std::fs::read_to_string(inbox.join("note.txt")).unwrap(), "already here");
+    assert!(
+        std::fs::read_dir(&inbox).unwrap().all(|e| !e.unwrap().file_name().to_string_lossy().ends_with(".part")),
+        "no partial files are left behind"
+    );
+
+    let mut delivered = 0;
+    while delivered < 2 {
+        mac.expect("delivered", |e| match e {
+            CoreEvent::Transfer { transfer } if transfer.status == TransferStatus::Delivered && keys.contains(&transfer.key) => Some(()),
+            CoreEvent::Transfer { transfer } if transfer.status == TransferStatus::Failed => panic!("send failed: {:?}", transfer.detail),
+            _ => None,
+        })
+        .await;
+        delivered += 1;
+    }
+    pc.engine.finish_incoming(&file_effect.event_id, true);
+    // Folders are refused up front.
+    assert!(mac.engine.send_files(&pc_id, vec![outbox.clone()], "aurora").is_err());
+    std::fs::remove_dir_all(&tmp).ok();
 
     // Unpairing reaches the other side and blocks further effects.
     mac.engine.unpair(&pc_id).await.unwrap();

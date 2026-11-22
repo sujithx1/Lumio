@@ -1,13 +1,16 @@
 //! Tauri commands: the only surface the React UI can call into.
 
 use crate::core::api::{DeviceSummary, PairingClaimed, RecentEffect};
-use crate::core::engine::{Engine, Peer, Snapshot};
+use crate::core::engine::{Engine, Peer, Snapshot, Transfer};
 use crate::effects::{EffectLaunch, Effects};
 use crate::settings::{DisplayMode, Settings, SettingsStore};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{AppHandle, State, WebviewWindow};
+use tauri::{AppHandle, Manager, State, WebviewWindow};
+use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_opener::OpenerExt;
 
 pub struct AppState {
     pub engine: Arc<Engine>,
@@ -173,9 +176,114 @@ pub fn get_settings(settings: State<'_, SettingsStore>) -> Settings {
 }
 
 #[tauri::command]
-pub fn update_settings(settings: State<'_, SettingsStore>, value: Settings) -> CmdResult<Settings> {
-    settings.set(value)
+pub fn update_settings(
+    app: AppHandle,
+    settings: State<'_, SettingsStore>,
+    state: State<'_, AppState>,
+    value: Settings,
+) -> CmdResult<Settings> {
+    let saved = settings.set(value)?;
+    state.engine.set_download_dir(saved.resolved_download_dir(&downloads_dir(&app)));
+    Ok(saved)
 }
+
+/// The user's Downloads folder (falls back to ~/Downloads).
+pub fn downloads_dir(app: &AppHandle) -> PathBuf {
+    app.path()
+        .download_dir()
+        .or_else(|_| app.path().home_dir().map(|h| h.join("Downloads")))
+        .unwrap_or_else(|_| std::env::temp_dir())
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesInfo {
+    /// Where received files are saved right now.
+    download_dir: String,
+    /// The folder used when none is chosen.
+    default_download_dir: String,
+}
+
+#[tauri::command]
+pub fn files_info(app: AppHandle, state: State<'_, AppState>) -> FilesInfo {
+    FilesInfo {
+        download_dir: state.engine.download_dir().to_string_lossy().into_owned(),
+        default_download_dir: downloads_dir(&app).join("Lumio").to_string_lossy().into_owned(),
+    }
+}
+
+/// Lets the user pick the folder for received files. Returns the saved settings, or None if cancelled.
+#[tauri::command]
+pub async fn choose_download_dir(
+    app: AppHandle,
+    settings: State<'_, SettingsStore>,
+    state: State<'_, AppState>,
+) -> CmdResult<Option<Settings>> {
+    let current = state.engine.download_dir();
+    let start = if current.exists() { current } else { downloads_dir(&app) };
+    let picked = app.dialog().file().set_title("Save received files to").set_directory(start).blocking_pick_folder();
+    let Some(folder) = picked else { return Ok(None) };
+    let folder = folder.into_path().map_err(|e| e.to_string())?;
+    let value = Settings { download_dir: Some(folder.to_string_lossy().into_owned()), ..settings.get() };
+    update_settings(app.clone(), settings, state, value).map(Some)
+}
+
+/// Shows a received file (or the download folder) in Finder / Explorer.
+/// Only paths Lumio saved, or the download folder itself, can be revealed.
+#[tauri::command]
+pub fn reveal_file(app: AppHandle, state: State<'_, AppState>, path: Option<String>) -> CmdResult<()> {
+    let dir = state.engine.download_dir();
+    let target = match path {
+        None => {
+            std::fs::create_dir_all(&dir).map_err(|e| format!("Couldn't create {}: {e}", dir.display()))?;
+            dir
+        }
+        Some(p) => {
+            let known = state.engine.transfers().iter().any(|t| t.path.as_deref() == Some(p.as_str()));
+            if !known {
+                return Err("That file isn't one Lumio received.".into());
+            }
+            PathBuf::from(p)
+        }
+    };
+    if !target.exists() {
+        return Err("The file has been moved or deleted.".into());
+    }
+    app.opener().reveal_item_in_dir(&target).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn list_transfers(state: State<'_, AppState>) -> Vec<Transfer> {
+    state.engine.transfers()
+}
+
+/// Sends files (e.g. dropped onto the window) to a paired device with this computer's file effect.
+#[tauri::command]
+pub fn send_files(
+    state: State<'_, AppState>,
+    settings: State<'_, SettingsStore>,
+    device_id: String,
+    paths: Vec<String>,
+) -> CmdResult<Vec<String>> {
+    let paths: Vec<PathBuf> = paths.into_iter().map(PathBuf::from).filter(|p| p.is_absolute()).collect();
+    state.engine.send_files(&device_id, paths, &settings.get().file_effect)
+}
+
+/// Opens a file picker and sends the chosen files. Returns no keys if the user cancelled.
+#[tauri::command]
+pub async fn choose_and_send_files(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    settings: State<'_, SettingsStore>,
+    device_id: String,
+) -> CmdResult<Vec<String>> {
+    let name = state.engine.snapshot().peers.into_iter().find(|p| p.device_id == device_id).map(|p| p.name);
+    let title = name.map(|n| format!("Send files to {n}")).unwrap_or_else(|| "Send files".into());
+    let Some(picked) = app.dialog().file().set_title(title).blocking_pick_files() else { return Ok(vec![]) };
+    let paths: Vec<PathBuf> = picked.into_iter().filter_map(|p| p.into_path().ok()).collect();
+    state.engine.send_files(&device_id, paths, &settings.get().file_effect)
+}
+
 
 /// Called by an effect window on load to learn what to render.
 #[tauri::command]

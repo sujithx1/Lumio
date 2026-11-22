@@ -82,6 +82,33 @@ export interface Settings {
   sendZone: SendZone;
   displayMode: DisplayMode;
   sound: boolean;
+  /** Folder for received files; null means the default (Downloads/Lumio). */
+  downloadDir: string | null;
+  /** Effect that plays on the other device when this computer sends files. */
+  fileEffect: string;
+}
+
+export interface FilesInfo {
+  downloadDir: string;
+  defaultDownloadDir: string;
+}
+
+export type TransferStatus = "queued" | "preparing" | "uploading" | "offered" | "delivered" | "downloading" | "saved" | "failed";
+
+/** A file going to or coming from a paired device (src-tauri/src/core/engine.rs `Transfer`). */
+export interface Transfer {
+  key: string;
+  transferId: string | null;
+  direction: "send" | "receive";
+  peerDeviceId: string;
+  peerName: string;
+  name: string;
+  size: number;
+  bytes: number;
+  status: TransferStatus;
+  detail: string | null;
+  path: string | null;
+  startedAt: number;
 }
 
 export interface ServerStatus {
@@ -106,6 +133,7 @@ export type CoreEvent =
   | { kind: "effectIncoming"; effect: IncomingEffect }
   | { kind: "effectRejected"; fromName: string; reason: string }
   | { kind: "delivery"; eventId: string; status: string; detail: string | null }
+  | { kind: "transfer"; transfer: Transfer }
   | { kind: "error"; message: string };
 
 export interface SendRequest {
@@ -134,6 +162,15 @@ export const native = {
   serverStatus: () => invoke<ServerStatus>("server_status"),
   getSettings: () => invoke<Settings>("get_settings"),
   updateSettings: (value: Settings) => invoke<Settings>("update_settings", { value }),
+  filesInfo: () => invoke<FilesInfo>("files_info"),
+  /** Opens a folder picker; resolves to the saved settings, or null if cancelled. */
+  chooseDownloadDir: () => invoke<Settings | null>("choose_download_dir"),
+  /** Shows a received file (or, with no path, the download folder) in Finder. */
+  revealFile: (path: string | null) => invoke<void>("reveal_file", { path }),
+  listTransfers: () => invoke<Transfer[]>("list_transfers"),
+  sendFiles: (deviceId: string, paths: string[]) => invoke<string[]>("send_files", { deviceId, paths }),
+  /** Opens a file picker and sends the chosen files; resolves to [] if cancelled. */
+  chooseAndSendFiles: (deviceId: string) => invoke<string[]>("choose_and_send_files", { deviceId }),
   onEvent: (handler: (event: CoreEvent) => void): Promise<UnlistenFn> =>
     listen<CoreEvent>("lumio://event", (e) => handler(e.payload)),
 };
