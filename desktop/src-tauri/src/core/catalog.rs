@@ -44,8 +44,10 @@ mod tests {
 
     #[test]
     fn bundled_catalog_has_the_launch_effects() {
-        assert_eq!(catalog().len(), 15);
-        assert!(effect("tiny-ronin").is_some());
+        assert_eq!(catalog().len(), 19);
+        for id in ["tiny-ronin", "boing", "kaze", "pebble", "snooze"] {
+            assert!(effect(id).is_some(), "{id} missing from the catalog");
+        }
         let portal = effect("cosmic-portal").unwrap();
         assert_eq!(clamp_duration(portal, 100), portal.min_duration);
         assert_eq!(clamp_duration(portal, 99_999), portal.max_duration);

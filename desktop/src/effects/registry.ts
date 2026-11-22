@@ -1,6 +1,10 @@
 import { giantsWall, pirateVoyage, powerAura, spiralOrb } from "./renderers/anime";
 import { celebration, fireworks, lightning, matrix, rainbow } from "./renderers/canvas";
+import { boing } from "./renderers/boing";
 import { cartoonParade } from "./renderers/cartoon";
+import { kaze } from "./renderers/kaze";
+import { pebble } from "./renderers/pebble";
+import { snooze } from "./renderers/snooze";
 import { cosmicPortal } from "./renderers/portal";
 import { tinyRonin } from "./renderers/ronin";
 import { aurora, eventHorizon, volcano } from "./renderers/shaders";
@@ -26,5 +30,9 @@ export const RENDERERS: Readonly<Record<string, EffectFactory>> = {
   "power-aura": powerAura,
   "cartoon-parade": cartoonParade,
   "tiny-ronin": tinyRonin,
+  boing,
+  kaze,
+  pebble,
+  snooze,
   "event-horizon": eventHorizon,
 };

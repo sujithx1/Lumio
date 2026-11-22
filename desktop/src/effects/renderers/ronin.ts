@@ -391,7 +391,7 @@ interface Glitter {
   size: number;
 }
 
-interface Puff {
+export interface Puff {
   x: number;
   y: number;
   r: number;
@@ -463,7 +463,7 @@ function drawPetal(g: CanvasRenderingContext2D, p: Petal, alpha: number) {
   g.restore();
 }
 
-function drawHeart(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
+export function drawHeart(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
   g.beginPath();
   g.moveTo(x, y + r * 0.9);
   g.bezierCurveTo(x - r * 1.4, y - r * 0.1, x - r * 0.6, y - r * 1.2, x, y - r * 0.45);
@@ -471,7 +471,7 @@ function drawHeart(g: CanvasRenderingContext2D, x: number, y: number, r: number)
   g.closePath();
 }
 
-function speedLines(g: CanvasRenderingContext2D, x: number, y: number, H: number, dir: 1 | -1, amount: number, t: number, dpr: number) {
+export function speedLines(g: CanvasRenderingContext2D, x: number, y: number, H: number, dir: 1 | -1, amount: number, t: number, dpr: number) {
   if (amount <= 0.02) return;
   g.save();
   g.strokeStyle = `rgba(255,255,255,${0.65 * amount})`;
@@ -489,7 +489,7 @@ function speedLines(g: CanvasRenderingContext2D, x: number, y: number, H: number
   g.restore();
 }
 
-function drawPuffs(g: CanvasRenderingContext2D, puffs: Puff[], dt: number) {
+export function drawPuffs(g: CanvasRenderingContext2D, puffs: Puff[], dt: number) {
   for (let i = puffs.length - 1; i >= 0; i--) {
     const f = puffs[i]!;
     f.life -= dt * 1.8;

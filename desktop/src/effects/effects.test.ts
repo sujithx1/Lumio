@@ -6,6 +6,10 @@ import { cartoonParade } from "./renderers/cartoon";
 import { arrivalComet, departureFor, hasArrivalComet, sparkCometDeparture } from "./handoff";
 import { cosmicPortal } from "./renderers/portal";
 import { roninDeparture, tinyRonin } from "./renderers/ronin";
+import { boing, boingDeparture } from "./renderers/boing";
+import { kaze, kazeDeparture } from "./renderers/kaze";
+import { pebble, pebbleDeparture } from "./renderers/pebble";
+import { snooze, snoozeDeparture } from "./renderers/snooze";
 import { RENDERERS } from "./registry";
 import type { EffectFactory } from "./types";
 
@@ -53,6 +57,10 @@ describe("canvas effects run a full timeline without throwing", () => {
     pirateVoyage,
     cartoonParade,
     tinyRonin,
+    boing,
+    kaze,
+    pebble,
+    snooze,
   };
   for (const [name, factory] of Object.entries(cases)) {
     for (const [intensity, mirror] of [
@@ -78,6 +86,10 @@ describe("handoff: departures on the sender, arrival comet on the receiver", () 
   const cases: Record<string, EffectFactory> = {
     sparkCometDeparture: (c) => sparkCometDeparture(c, accent),
     roninDeparture: (c) => roninDeparture(c),
+    boingDeparture: (c) => boingDeparture(c),
+    kazeDeparture: (c) => kazeDeparture(c),
+    pebbleDeparture: (c) => pebbleDeparture(c),
+    snoozeDeparture: (c) => snoozeDeparture(c),
     arrivalComet: (c) => arrivalComet(c, accent),
   };
   for (const [name, factory] of Object.entries(cases)) {
@@ -100,5 +112,15 @@ describe("handoff: departures on the sender, arrival comet on the receiver", () 
     expect(departureFor("unknown")).toBe(sparkCometDeparture);
     expect(hasArrivalComet("tiny-ronin")).toBe(false);
     expect(hasArrivalComet("cosmic-portal")).toBe(true);
+  });
+
+  test("the character effects each have their own departure and entrance", () => {
+    const generic = departureFor("aurora");
+    const ids = ["tiny-ronin", "boing", "kaze", "pebble", "snooze"];
+    for (const id of ids) {
+      expect(departureFor(id)).not.toBe(generic);
+      expect(hasArrivalComet(id)).toBe(false);
+    }
+    expect(new Set(ids.map(departureFor)).size).toBe(ids.length);
   });
 });

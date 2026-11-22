@@ -1,4 +1,8 @@
+import { boingDeparture } from "./renderers/boing";
+import { kazeDeparture } from "./renderers/kaze";
+import { pebbleDeparture } from "./renderers/pebble";
 import { roninDeparture } from "./renderers/ronin";
+import { snoozeDeparture } from "./renderers/snooze";
 import { beginFrame, clamp01, ctx2d, easeOutCubic, phase, rand, sized, star, type EffectContext, type EffectInstance } from "./types";
 
 // The handoff: an effect starts on the sender's screen and ends on the receiver's.
@@ -247,10 +251,14 @@ export const arrivalComet: HandoffFactory = (c, accent) => {
 /** Effect-specific departures; everything else uses the spark comet. */
 const DEPARTURES: Readonly<Record<string, HandoffFactory>> = {
   "tiny-ronin": (c) => roninDeparture(c),
+  boing: (c) => boingDeparture(c),
+  kaze: (c) => kazeDeparture(c),
+  pebble: (c) => pebbleDeparture(c),
+  snooze: (c) => snoozeDeparture(c),
 };
 
 /** Effects that already make their own entrance, so the receiver skips the arrival comet. */
-const OWN_ARRIVAL = new Set(["tiny-ronin"]);
+const OWN_ARRIVAL = new Set(["tiny-ronin", "boing", "kaze", "pebble", "snooze"]);
 
 export const departureFor = (effectId: string): HandoffFactory => DEPARTURES[effectId] ?? sparkCometDeparture;
 export const hasArrivalComet = (effectId: string) => !OWN_ARRIVAL.has(effectId);
