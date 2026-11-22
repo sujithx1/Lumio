@@ -6,7 +6,7 @@ A device shows a QR code (or a short code), another device scans or types it, bo
 
 You can also **share photos, videos and any file** between paired devices. While a file arrives, the receiving screen plays your chosen effect, and the file lands in the folder set in Settings.
 
-15 effects: Cosmic Portal, Rainbow, Volcano, Lightning, Celebration, Matrix, Aurora, Fireworks, plus original anime- and cartoon-style effects (Spiral Orb, Pirate Voyage, Giant's Wall, Power Aura, Tiny Ronin, Cartoon Parade) and Event Horizon (a black hole).
+19 effects: Cosmic Portal, Rainbow, Volcano, Lightning, Celebration, Matrix, Aurora, Fireworks, plus original anime- and cartoon-style effects (Spiral Orb, Pirate Voyage, Giant's Wall, Power Aura, Cartoon Parade) and Event Horizon (a black hole), and five original characters: Tiny Ronin (a little swordsman), Boing (a stretchy-armed kid), Kaze (a fox-eared swordswoman), Pebble (a cadet and her friendly stone giant) and Snooze (a sleepy cat-eared kid with lightning).
 
 Every effect is a **handoff**: it starts on the sender's screen and leaves toward the other device (out of the top of the phone, or out of the computer's Send Zone edge), then arrives on the receiver from the matching edge. Effects are signed by the sender's device key and verified by the receiver; a receiver only ever renders effects from its built-in catalog.
 
@@ -17,7 +17,7 @@ Every effect is a **handoff**: it starts on the sender's screen and leaves towar
 | Relay server (auth, pairing, presence, signed effect routing) | ✅ Built and tested against real Postgres |
 | Desktop app (Tauri) | ✅ macOS built and run. Windows/Linux: same code, not yet built or tested |
 | Mobile app (Flutter) | ✅ iOS built and run in the Simulator. Android: code complete, not yet built (no SDK on the dev machine) |
-| Effects | ✅ 15 on desktop (see-through overlay, WebGL + Canvas, synthesised sound) and 15 on mobile (fragment shaders + CustomPainter over the app, haptics), with a sender-to-receiver handoff |
+| Effects | ✅ 19 on desktop (see-through overlay, WebGL + Canvas, synthesised sound) and 19 on mobile (fragment shaders + CustomPainter over the app, haptics), with a sender-to-receiver handoff |
 | Send Zone, overlay mode, flick to send | ✅ Desktop setting under **Devices → Effects on this computer**; flick card in the phone's send sheet |
 | File sharing | ✅ Relay upload/download with signed offers, size + SHA-256 checks, an effect while files arrive, save folder in settings. Not end-to-end encrypted yet |
 | Local-network mode (mDNS, direct LAN) | ❌ Not built; everything goes through the relay |
