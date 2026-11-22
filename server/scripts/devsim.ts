@@ -4,12 +4,17 @@
  *   bun scripts/devsim.ts host                 show a pairing code, auto-approve whoever claims it
  *   bun scripts/devsim.ts join <CODE>          claim a code shown by an app (approve it there)
  *   bun scripts/devsim.ts send <effect-id>     send an effect to every paired device
- *   bun scripts/devsim.ts listen               stay online, ack and log incoming effects
+ *   bun scripts/devsim.ts send-file <path> [effect-id]
+ *                                              send a file to every online paired device
+ *   bun scripts/devsim.ts listen               stay online, ack and log incoming effects and files
+ *
+ * Received files are verified (signature, size, SHA-256) and saved to .devsim/received/.
  *
  * Options: --server http://localhost:8787  --name "Sim Device"  --profile default
  * The identity is kept in .devsim/<profile>.key so the device stays paired between runs.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename } from "node:path";
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 import { SimDevice } from "../test/support/sim-device";
@@ -39,8 +44,41 @@ console.log(`● ${device.name} online as ${device.deviceId}`);
 
 const peers = async () => (await device.api("GET", "/v1/devices")).json.devices as Array<{ deviceId: string; name: string; publicKey: string; online: boolean }>;
 
-/** Acknowledges incoming effects like a real receiver would (after verifying the signature). */
+/** Downloads offered files like a real receiver would: verify the signature, then size and hash. */
+async function serveFiles() {
+  const received = join(dir, "received");
+  mkdirSync(received, { recursive: true });
+  for (;;) {
+    const msg = await device.next("FILE_OFFER", 24 * 3600_000);
+    const peer = (await peers()).find((p) => p.deviceId === msg.from);
+    const { transferId, name: fileName, size, sha256, effectId } = msg.payload;
+    if (!peer || !SimDevice.verify(msg, peer.publicKey)) {
+      console.log(`✗ rejected file ${fileName}: bad signature or unknown peer`);
+      device.send(device.signed(device.envelope("FILE_FAILED", msg.from, { transferId, reason: "invalid_signature" })));
+      continue;
+    }
+    console.log(`⇣ ${peer.name} is sending ${fileName} (${size} bytes) with ${effectId}`);
+    const res = await device.fetch("GET", `/v1/transfers/${transferId}/content`);
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const ok = res.ok && bytes.byteLength === size && new Bun.CryptoHasher("sha256").update(bytes).digest("hex") === sha256;
+    if (!ok) {
+      console.log(`✗ ${fileName}: download or checksum failed`);
+      device.send(device.signed(device.envelope("FILE_FAILED", msg.from, { transferId, reason: res.ok ? "checksum_mismatch" : "download_failed" })));
+      continue;
+    }
+    const safe = basename(fileName).replace(/^\.+/, "") || "file";
+    writeFileSync(join(received, `${transferId.slice(-8)}-${safe}`), bytes);
+    device.send(device.signed(device.envelope("FILE_RECEIVED", msg.from, { transferId })));
+    console.log(`✓ saved ${safe} to .devsim/received/`);
+  }
+}
+
 async function serveIncoming() {
+  await Promise.all([serveEffects(), serveFiles()]);
+}
+
+/** Acknowledges incoming effects like a real receiver would (after verifying the signature). */
+async function serveEffects() {
   for (;;) {
     const msg = await device.next("EFFECT_TRIGGER", 24 * 3600_000);
     const peer = (await peers()).find((p) => p.deviceId === msg.from);
@@ -92,6 +130,25 @@ switch (command) {
     clearInterval(heartbeat);
     device.close();
     break;
+  }
+  case "send-file": {
+    if (!arg) throw new Error("usage: devsim send-file <path> [effect-id]");
+    const bytes = new Uint8Array(readFileSync(arg));
+    const effectId = args[2] ?? "cosmic-portal";
+    for (const peer of (await peers()).filter((p) => p.online)) {
+      const offer = await device.sendFile(peer.deviceId, bytes, { name: basename(arg), mime: "application/octet-stream", effectId });
+      const isMine = (m: { payload: { transferId?: string; refId?: string } }) =>
+        m.payload.transferId === offer.payload.transferId || m.payload.refId === offer.id;
+      const result = await Promise.race([
+        device.next("FILE_RECEIVED", 120_000, isMine).then(() => "received"),
+        device.next("FILE_FAILED", 120_000, isMine).then((m) => `failed: ${m.payload.reason}`),
+        device.next("ERROR", 120_000, isMine).then((m) => `error: ${m.payload.message}`),
+      ]).catch(() => "no answer");
+      console.log(`→ ${peer.name}: ${result}`);
+    }
+    clearInterval(heartbeat);
+    device.close();
+    process.exit(0);
   }
   default:
     await serveIncoming();

@@ -8,7 +8,14 @@ export interface Config {
   /** HMAC key for session JWTs. At least 32 characters. */
   jwtSecret: string;
   tokenTtlSeconds: number;
+  /** Where files in transit are kept until the receiver downloads them. */
+  filesDir: string;
+  /** Largest file a device may send. */
+  maxFileBytes: number;
 }
+
+/** 1 GiB. */
+export const DEFAULT_MAX_FILE_BYTES = 1024 ** 3;
 
 const LOG_LEVELS: readonly LogLevel[] = ["debug", "info", "warn", "error"];
 
@@ -34,5 +41,11 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     throw new ConfigError("TOKEN_TTL_SECONDS must be an integer between 60 and 3600");
   }
 
-  return { port, host: env.HOST ?? "::", databaseUrl, logLevel, jwtSecret, tokenTtlSeconds };
+  const maxFileBytes = Number(env.MAX_FILE_BYTES ?? String(DEFAULT_MAX_FILE_BYTES));
+  if (!Number.isInteger(maxFileBytes) || maxFileBytes < 1 || maxFileBytes > 4 * 1024 ** 3) {
+    throw new ConfigError("MAX_FILE_BYTES must be an integer between 1 and 4294967296");
+  }
+  const filesDir = env.FILES_DIR || "./data/transfers";
+
+  return { port, host: env.HOST ?? "::", databaseUrl, logLevel, jwtSecret, tokenTtlSeconds, filesDir, maxFileBytes };
 }

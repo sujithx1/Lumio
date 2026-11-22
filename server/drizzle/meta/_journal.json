@@ -15,6 +15,13 @@
       "when": 1795273413253,
       "tag": "0001_drop_claim_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795330226689,
+      "tag": "0002_file_transfers",
+      "breakpoints": true
     }
   ]
 }

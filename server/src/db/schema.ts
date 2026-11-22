@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   check,
   index,
@@ -28,6 +29,16 @@ export const effectStatus = pgEnum("effect_status", [
   "receiver_offline",
   "notified",
   "rejected",
+]);
+
+export const transferStatus = pgEnum("transfer_status", [
+  "created",
+  "ready",
+  "offered",
+  "delivered",
+  "failed",
+  "cancelled",
+  "expired",
 ]);
 
 export const overlayMode = pgEnum("overlay_mode", ["fullscreen", "overlay"]);
@@ -121,6 +132,37 @@ export const effectEvents = pgTable(
   (t) => [
     index("effect_events_sender_idx").on(t.senderDeviceId, t.recordedAt.desc()),
     index("effect_events_receiver_idx").on(t.receiverDeviceId, t.recordedAt.desc()),
+  ],
+);
+
+/**
+ * A file in transit through the relay. The bytes live on disk (FILES_DIR/<id>) only until the receiver
+ * confirms (FILE_RECEIVED / FILE_FAILED), the transfer is cancelled, or it expires.
+ */
+export const fileTransfers = pgTable(
+  "file_transfers",
+  {
+    id: uuid("id").primaryKey(),
+    senderDeviceId: uuid("sender_device_id")
+      .notNull()
+      .references(() => devices.id, { onDelete: "cascade" }),
+    receiverDeviceId: uuid("receiver_device_id")
+      .notNull()
+      .references(() => devices.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    size: bigint("size", { mode: "number" }).notNull(),
+    mime: varchar("mime", { length: 127 }).notNull(),
+    sha256: varchar("sha256", { length: 64 }).notNull(),
+    status: transferStatus("status").notNull().default("created"),
+    failureReason: varchar("failure_reason", { length: 32 }),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    expiresAt: ts("expires_at").notNull(),
+    completedAt: ts("completed_at"),
+  },
+  (t) => [
+    index("file_transfers_sender_idx").on(t.senderDeviceId, t.createdAt.desc()),
+    index("file_transfers_receiver_idx").on(t.receiverDeviceId, t.createdAt.desc()),
+    index("file_transfers_expires_idx").on(t.expiresAt),
   ],
 );
 

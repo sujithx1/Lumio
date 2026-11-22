@@ -51,7 +51,13 @@ describe("loadConfig", () => {
       logLevel: "info",
       jwtSecret: base.JWT_SECRET,
       tokenTtlSeconds: 900,
+      filesDir: "./data/transfers",
+      maxFileBytes: 1024 ** 3,
     });
+  });
+  test("rejects a bad MAX_FILE_BYTES", () => {
+    expect(() => loadConfig({ ...base, MAX_FILE_BYTES: "0" })).toThrow(ConfigError);
+    expect(() => loadConfig({ ...base, MAX_FILE_BYTES: "1.5" })).toThrow(ConfigError);
   });
   test("requires DATABASE_URL", () => {
     expect(() => loadConfig({ JWT_SECRET: base.JWT_SECRET })).toThrow(ConfigError);

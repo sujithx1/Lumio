@@ -53,6 +53,25 @@ export type EffectFailureReason =
 
 export type EffectRelayStatus = "relayed" | "receiver_offline" | "notified" | "expired" | "rejected";
 
+export type FileFailureReason =
+  | "checksum_mismatch"
+  | "download_failed"
+  | "storage_error"
+  | "too_large"
+  | "invalid_signature"
+  | "not_paired"
+  | "expired"
+  | "unsupported";
+
+export interface FileOfferPayload {
+  transferId: Uuid;
+  name: string;
+  size: number;
+  mime: string;
+  sha256: string;
+  effectId: string;
+}
+
 export type ErrorCode = "bad_request" | "unauthorized" | "forbidden" | "not_found" | "rate_limited" | "internal";
 
 export interface EffectPayload {
@@ -88,6 +107,9 @@ export type EffectFailedMessage = Envelope<"EFFECT_FAILED", { eventId: Uuid; rea
 export type EffectStatusMessage = Envelope<"EFFECT_STATUS", { eventId: Uuid; status: EffectRelayStatus }> & {
   from: "server";
 };
+export type FileOfferMessage = Envelope<"FILE_OFFER", FileOfferPayload> & Signed;
+export type FileReceivedMessage = Envelope<"FILE_RECEIVED", { transferId: Uuid }> & Signed;
+export type FileFailedMessage = Envelope<"FILE_FAILED", { transferId: Uuid; reason: FileFailureReason }> & Signed;
 export type ErrorMessage = Envelope<"ERROR", { code: ErrorCode; message: string; refId?: Uuid }> & {
   from: "server";
 };
@@ -107,6 +129,9 @@ export type LumioMessage =
   | EffectCompletedMessage
   | EffectFailedMessage
   | EffectStatusMessage
+  | FileOfferMessage
+  | FileReceivedMessage
+  | FileFailedMessage
   | ErrorMessage;
 
 export type MessageType = LumioMessage["type"];

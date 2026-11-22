@@ -1,4 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { readdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { eq, sql } from "drizzle-orm";
 import { effectEvents, pairingSessions } from "../src/db/schema";
 import { runMigrations } from "../src/db/migrate";
@@ -7,6 +10,7 @@ import { startServer } from "../src/server";
 import { pair, SimDevice } from "./support/sim-device";
 
 const url = process.env.TEST_DATABASE_URL;
+const filesDir = join(tmpdir(), `lumio-e2e-files-${process.pid}`);
 
 describe.skipIf(!url)("relay end-to-end (integration)", () => {
   let running: ReturnType<typeof startServer>;
@@ -30,17 +34,20 @@ describe.skipIf(!url)("relay end-to-end (integration)", () => {
         logLevel: "error",
         jwtSecret: "test-secret-test-secret-test-secret!!",
         tokenTtlSeconds: 900,
+        filesDir: filesDir,
+        maxFileBytes: 64 * 1024,
       },
       createLogger("error"),
       { ipRateLimitPerMinute: 10_000 },
     );
     base = running.url.toString().replace(/\/$/, "");
-    await running.db.execute(sql`truncate devices, pairing_sessions, device_pairings, effect_events, device_settings cascade`);
+    await running.db.execute(sql`truncate devices, pairing_sessions, device_pairings, effect_events, device_settings, file_transfers cascade`);
   });
 
   afterAll(async () => {
     for (const d of devices) d.close();
     await running?.stop();
+    await rm(filesDir, { recursive: true, force: true });
   });
 
   describe("authentication", () => {
@@ -296,6 +303,150 @@ describe.skipIf(!url)("relay end-to-end (integration)", () => {
       await pair(a, b);
       expect((await a.api("PATCH", "/v1/me", { name: "  New Name  " })).json.name).toBe("New Name");
       expect((await b.api("GET", "/v1/devices")).json.devices[0].name).toBe("New Name");
+    });
+  });
+
+  describe("file sharing", () => {
+    const bytes = (text: string) => new TextEncoder().encode(text);
+    const sha = (b: Uint8Array) => new Bun.CryptoHasher("sha256").update(b).digest("hex");
+    const stored = async () => (await readdir(filesDir)).filter((f) => !f.startsWith("."));
+
+    test("a file travels sender -> relay -> receiver and is deleted once received", async () => {
+      const [phone, mac] = [await device("Files Phone"), await device("Files Mac")];
+      await pair(phone, mac);
+      const content = bytes("hello from the phone ✨");
+      const sent = await phone.sendFile(mac.deviceId, content, { name: "Beach day.jpg", mime: "image/jpeg", effectId: "pirate-voyage" });
+
+      const offer = await mac.next("FILE_OFFER");
+      expect(offer.id).toBe(sent.id);
+      expect(SimDevice.verify(offer, phone.keys.publicKey)).toBe(true);
+      expect(offer.payload).toMatchObject({ name: "Beach day.jpg", size: content.byteLength, effectId: "pirate-voyage" });
+
+      const res = await mac.fetch("GET", `/v1/transfers/${offer.payload.transferId}/content`);
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("application/octet-stream");
+      const got = new Uint8Array(await res.arrayBuffer());
+      expect(sha(got)).toBe(offer.payload.sha256);
+      expect(await stored()).toContain(offer.payload.transferId);
+
+      mac.send(mac.signed(mac.envelope("FILE_RECEIVED", phone.deviceId, { transferId: offer.payload.transferId })));
+      const receipt = await phone.next("FILE_RECEIVED");
+      expect(SimDevice.verify(receipt, mac.keys.publicKey)).toBe(true);
+      expect(await stored()).not.toContain(offer.payload.transferId);
+      expect((await mac.fetch("GET", `/v1/transfers/${offer.payload.transferId}/content`)).status).toBe(410);
+    });
+
+    test("only the receiver can download, and only the sender can upload", async () => {
+      const [a, b, c] = [await device("Files A"), await device("Files B"), await device("Files Outsider")];
+      await pair(a, b);
+      await pair(a, c);
+      const content = bytes("private");
+      const created = await a.api("POST", "/v1/transfers", { to: b.deviceId, name: "p.txt", size: content.byteLength, mime: "text/plain", sha256: sha(content) });
+      const id = created.json.transferId;
+      expect((await c.fetch("PUT", `/v1/transfers/${id}/content`, { body: content })).status).toBe(404);
+      expect((await a.fetch("PUT", `/v1/transfers/${id}/content`, { body: content })).status).toBe(204);
+      expect((await a.fetch("PUT", `/v1/transfers/${id}/content`, { body: content })).status).toBe(409);
+      expect((await c.fetch("GET", `/v1/transfers/${id}/content`)).status).toBe(404);
+      expect((await a.fetch("GET", `/v1/transfers/${id}/content`)).status).toBe(404);
+      expect((await b.fetch("GET", `/v1/transfers/${id}/content`)).status).toBe(200);
+    });
+
+    test("uploads that do not match the declared size or hash are rejected and discarded", async () => {
+      const [a, b] = [await device("Files Liar"), await device("Files Target")];
+      await pair(a, b);
+      const create = (content: Uint8Array, size = content.byteLength) =>
+        a.api("POST", "/v1/transfers", { to: b.deviceId, name: "x.bin", size, mime: "application/octet-stream", sha256: sha(content) });
+
+      const wrongHash = await create(bytes("aaaa"));
+      expect((await a.fetch("PUT", `/v1/transfers/${wrongHash.json.transferId}/content`, { body: bytes("bbbb") })).status).toBe(400);
+      const tooMany = await create(bytes("aaaa"), 2);
+      expect((await a.fetch("PUT", `/v1/transfers/${tooMany.json.transferId}/content`, { body: bytes("aaaa") })).status).toBe(413);
+      const tooFew = await create(bytes("aaaa"), 8);
+      expect((await a.fetch("PUT", `/v1/transfers/${tooFew.json.transferId}/content`, { body: bytes("aaaa") })).status).toBe(400);
+      const leftovers = (await stored()).filter((f) => [wrongHash, tooMany, tooFew].some((r) => f.startsWith(r.json.transferId)));
+      expect(leftovers).toEqual([]);
+    });
+
+    test("an upload cut off mid-way is discarded and can be retried", async () => {
+      const [a, b] = [await device("Files Flaky"), await device("Files Patient")];
+      await pair(a, b);
+      const content = new Uint8Array(40_000).fill(3);
+      const created = await a.api("POST", "/v1/transfers", { to: b.deviceId, name: "big.bin", size: content.byteLength, mime: "application/octet-stream", sha256: sha(content) });
+      const id = created.json.transferId as string;
+      const { hostname, port } = new URL(base);
+      const sock = await Bun.connect({ hostname, port: Number(port), socket: { data() {} } });
+      sock.write(`PUT /v1/transfers/${id}/content HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer ${a.bearer}\r\nTransfer-Encoding: chunked\r\n\r\n`);
+      sock.write(`2710\r\n`);
+      sock.write(content.subarray(0, 10_000));
+      sock.write(`\r\n`);
+      await Bun.sleep(100);
+      sock.end();
+      for (let i = 0; i < 40 && (await stored()).some((f) => f.startsWith(id)); i++) await Bun.sleep(25);
+      expect((await stored()).filter((f) => f.startsWith(id))).toEqual([]);
+      expect((await a.fetch("PUT", `/v1/transfers/${id}/content`, { body: content })).status).toBe(204);
+    });
+
+    test("files over the size limit, to unpaired devices or with unsafe names are refused", async () => {
+      const [a, b, stranger] = [await device("Files Big"), await device("Files Peer"), await device("Files Stranger")];
+      await pair(a, b);
+      const meta = { name: "ok.txt", size: 1, mime: "text/plain", sha256: "0".repeat(64) };
+      expect((await a.api("POST", "/v1/transfers", { ...meta, to: b.deviceId, size: 64 * 1024 + 1 })).status).toBe(413);
+      expect((await a.api("POST", "/v1/transfers", { ...meta, to: stranger.deviceId })).status).toBe(403);
+      for (const name of ["../etc/passwd", "a\\b", "..", "a\nb"]) {
+        expect((await a.api("POST", "/v1/transfers", { ...meta, to: b.deviceId, name })).status).toBe(400);
+      }
+      expect((await a.api("GET", "/v1/transfers/limits")).json.maxBytes).toBe(64 * 1024);
+    });
+
+    test("an offer must match the uploaded file, and an offline receiver is reported", async () => {
+      const [a, b] = [await device("Files Offerer"), await device("Files Offline", false)];
+      await b.connect();
+      await pair(a, b);
+      const content = bytes("match me");
+      const created = await a.api("POST", "/v1/transfers", { to: b.deviceId, name: "m.txt", size: content.byteLength, mime: "text/plain", sha256: sha(content) });
+      const transferId = created.json.transferId;
+      const payload = { transferId, name: "m.txt", size: content.byteLength, mime: "text/plain", sha256: sha(content), effectId: "rainbow" };
+
+      a.send(a.signed(a.envelope("FILE_OFFER", b.deviceId, payload)));
+      expect((await a.next("ERROR")).payload.message).toContain("not ready");
+      await a.fetch("PUT", `/v1/transfers/${transferId}/content`, { body: content });
+
+      a.send(a.signed(a.envelope("FILE_OFFER", b.deviceId, { ...payload, name: "renamed.exe" })));
+      expect((await a.next("ERROR")).payload.code).toBe("not_found");
+      expect(await b.nothing("FILE_OFFER")).toBe(true);
+
+      b.close();
+      await a.next("DEVICE_OFFLINE");
+      a.send(a.signed(a.envelope("FILE_OFFER", b.deviceId, payload)));
+      expect((await a.next("ERROR")).payload.message).toBe("receiver is offline");
+    });
+
+    test("the receiver can report a failure, and only the receiver can settle a transfer", async () => {
+      const [a, b] = [await device("Files Sender"), await device("Files Failer")];
+      await pair(a, b);
+      const offer = await a.sendFile(b.deviceId, bytes("will fail"));
+      await b.next("FILE_OFFER");
+      a.send(a.signed(a.envelope("FILE_RECEIVED", b.deviceId, { transferId: offer.payload.transferId })));
+      expect((await a.next("ERROR")).payload.code).toBe("not_found");
+
+      b.send(b.signed(b.envelope("FILE_FAILED", a.deviceId, { transferId: offer.payload.transferId, reason: "storage_error" })));
+      expect((await a.next("FILE_FAILED")).payload.reason).toBe("storage_error");
+      b.send(b.signed(b.envelope("FILE_RECEIVED", a.deviceId, { transferId: offer.payload.transferId })));
+      expect((await b.next("ERROR")).payload.message).toBe("transfer already finished");
+    });
+
+    test("cancelled and expired transfers are deleted", async () => {
+      const [a, b] = [await device("Files Canceller"), await device("Files Waiter")];
+      await pair(a, b);
+      const one = await a.sendFile(b.deviceId, bytes("cancel me"));
+      await b.next("FILE_OFFER");
+      expect((await b.api("DELETE", `/v1/transfers/${one.payload.transferId}`)).status).toBe(204);
+      expect((await b.fetch("GET", `/v1/transfers/${one.payload.transferId}/content`)).status).toBe(410);
+
+      const two = await a.sendFile(b.deviceId, bytes("forget me"));
+      await b.next("FILE_OFFER");
+      expect(await running.transfers.sweep(Date.now() + 31 * 60_000)).toBeGreaterThanOrEqual(1);
+      expect(await stored()).not.toContain(two.payload.transferId);
     });
   });
 });

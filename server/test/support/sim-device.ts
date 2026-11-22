@@ -137,6 +137,44 @@ export class SimDevice {
     return msg;
   }
 
+  /** The session token, for tests that speak raw HTTP. */
+  get bearer(): string {
+    return this.token;
+  }
+
+  /** Raw HTTP with this device's token (for binary bodies). */
+  fetch(method: string, path: string, init: { body?: Uint8Array | string; headers?: Record<string, string> } = {}) {
+    return fetch(`${this.baseUrl}${path}`, {
+      method,
+      body: init.body,
+      headers: { authorization: `Bearer ${this.token}`, ...init.headers },
+    });
+  }
+
+  /** Uploads bytes to the relay and sends a signed FILE_OFFER. Returns the offer. */
+  async sendFile(to: string, bytes: Uint8Array, opts: Partial<{ name: string; mime: string; effectId: string }> = {}) {
+    const name = opts.name ?? "hello.txt";
+    const mime = opts.mime ?? "text/plain";
+    const sha256 = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+    const created = await this.api("POST", "/v1/transfers", { to, name, size: bytes.byteLength, mime, sha256 });
+    if (created.status !== 201) throw new Error(`create transfer: ${created.status} ${JSON.stringify(created.json)}`);
+    const transferId = created.json.transferId as string;
+    const put = await this.fetch("PUT", `/v1/transfers/${transferId}/content`, { body: bytes });
+    if (put.status !== 204) throw new Error(`upload: ${put.status} ${await put.text()}`);
+    const offer = this.signed(
+      this.envelope("FILE_OFFER", to, {
+        transferId,
+        name,
+        size: bytes.byteLength,
+        mime,
+        sha256,
+        effectId: opts.effectId ?? "cosmic-portal",
+      }),
+    );
+    this.send(offer);
+    return offer;
+  }
+
   static verify(msg: LumioMessage & { sig?: string }, publicKey: string): boolean {
     return Boolean(msg.sig) && verifyEd25519(publicKey, signingInput(msg), msg.sig!);
   }

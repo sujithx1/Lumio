@@ -20,6 +20,8 @@ const messages = [
   { ...base, id: "0193a2b6-0000-7000-8000-000000000204", type: "EFFECT_TRIGGER", from: A, to: B, payload: { effectId: "lightning", duration: 4000, intensity: 0.35, sound: true } },
   { ...base, id: "0193a2b6-0000-7000-8000-000000000205", type: "EFFECT_RECEIVED", from: B, to: A, payload: { eventId: "0193a2b6-0000-7000-8000-000000000201" } },
   { ...base, id: "0193a2b6-0000-7000-8000-000000000206", type: "EFFECT_FAILED", from: B, to: A, payload: { eventId: "0193a2b6-0000-7000-8000-000000000201", reason: "unknown_effect" } },
+  { ...base, id: "0193a2b6-0000-7000-8000-000000000207", type: "FILE_OFFER", from: A, to: B, payload: { transferId: "0193a2b7-0000-7000-8000-0000000000f1", name: "Résumé – 履歴書 😀.pdf", size: 4294967296, mime: "application/pdf", sha256: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", effectId: "spiral-orb" } },
+  { ...base, id: "0193a2b6-0000-7000-8000-000000000208", type: "FILE_RECEIVED", from: B, to: A, payload: { transferId: "0193a2b7-0000-7000-8000-0000000000f1" } },
 ];
 
 const cases = messages.map((message) => ({

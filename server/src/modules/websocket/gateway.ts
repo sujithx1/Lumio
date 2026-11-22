@@ -8,6 +8,7 @@ import type { TokenService } from "../auth/service";
 import type { DeviceRepo } from "../devices/repo";
 import type { EventRouter } from "../events/router";
 import type { Presence } from "../presence/presence";
+import type { TransferService } from "../transfers/service";
 
 export interface WsData {
   ip: string;
@@ -37,18 +38,22 @@ interface GatewayDeps {
   repo: DeviceRepo;
   tokens: TokenService;
   router: EventRouter;
+  transfers: TransferService;
   logger: Logger;
+  /** Frames per 10 s per IP before a socket has authenticated. Default 40; raised in tests. */
+  preAuthLimit?: number;
 }
 
 /**
  * WebSocket gateway at /v1/ws.
  * 1. Client sends AUTH {token} within 5 s, server replies AUTH_OK.
  * 2. Both sides exchange HEARTBEAT; sockets silent for 45 s are closed.
- * 3. EFFECT_* messages are validated, checked against the authenticated identity and routed.
+ * 3. EFFECT_* and FILE_* messages are validated, checked against the authenticated identity and routed.
  */
-export function createGateway({ presence, repo, tokens, router, logger }: GatewayDeps) {
+export function createGateway({ presence, repo, tokens, router, transfers, logger, preAuthLimit = 40 }: GatewayDeps) {
   const sockets = new Set<LumioSocket>();
   const floodLimiter = new RateLimiter(40, 10_000);
+  const preAuthLimiter = new RateLimiter(preAuthLimit, 10_000);
   const lastSeenWrites = new Map<string, number>();
 
   const sendError = (ws: LumioSocket, code: ErrorCode, message: string, refId?: string) => {
@@ -97,8 +102,8 @@ export function createGateway({ presence, repo, tokens, router, logger }: Gatewa
       ws.close(CLOSE.protocol, "text frames only");
       return;
     }
-    const key = ws.data.deviceId ?? ws.data.ip;
-    if (!floodLimiter.take(key)) {
+    const allowed = ws.data.deviceId ? floodLimiter.take(ws.data.deviceId) : preAuthLimiter.take(ws.data.ip);
+    if (!allowed) {
       ws.close(CLOSE.flood, "too many messages");
       return;
     }
@@ -131,6 +136,10 @@ export function createGateway({ presence, repo, tokens, router, logger }: Gatewa
       case "EFFECT_FAILED":
         if (msg.to === "server") return sendError(ws, "bad_request", "effects are addressed to a device", msg.id);
         return router.handle(msg, now);
+      case "FILE_OFFER":
+      case "FILE_RECEIVED":
+      case "FILE_FAILED":
+        return transfers.handle(msg, now);
       default:
         return sendError(ws, "bad_request", `${msg.type} is not accepted from devices`, msg.id);
     }
