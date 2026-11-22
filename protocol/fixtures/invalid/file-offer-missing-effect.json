@@ -1,0 +1,20 @@
+{
+  "description": "Offers must name the effect to play",
+  "message": {
+    "v": 1,
+    "id": "0193a2b6-0000-7000-8000-000000000319",
+    "type": "FILE_OFFER",
+    "from": "0193a2b4-1c2d-7e3f-8a9b-0c1d2e3f4a5b",
+    "to": "0193a2b4-5d6e-7f80-9a1b-2c3d4e5f6a7b",
+    "createdAt": 1763712000000,
+    "expiresAt": 1763712030000,
+    "payload": {
+      "transferId": "0193a2b7-0000-7000-8000-0000000000f1",
+      "name": "Beach day.jpg",
+      "size": 2481903,
+      "mime": "image/jpeg",
+      "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+    },
+    "sig": "CzBVep_E6Q4zWH2ix-wRNluApcrvFDleg6jN8hc8YYar0PUaP2SJrtP4HUJnjLHW-yBFao-02f4jSG2St9wBJg"
+  }
+}

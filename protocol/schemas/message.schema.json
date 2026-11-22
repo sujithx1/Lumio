@@ -18,6 +18,9 @@
     { "$ref": "#/$defs/EffectCompleted" },
     { "$ref": "#/$defs/EffectFailed" },
     { "$ref": "#/$defs/EffectStatus" },
+    { "$ref": "#/$defs/FileOffer" },
+    { "$ref": "#/$defs/FileReceived" },
+    { "$ref": "#/$defs/FileFailed" },
     { "$ref": "#/$defs/Error" }
   ],
   "$defs": {
@@ -38,6 +41,9 @@
         "EFFECT_COMPLETED": "EffectCompleted",
         "EFFECT_FAILED": "EffectFailed",
         "EFFECT_STATUS": "EffectStatus",
+        "FILE_OFFER": "FileOffer",
+        "FILE_RECEIVED": "FileReceived",
+        "FILE_FAILED": "FileFailed",
         "ERROR": "Error"
       }
     },
@@ -82,6 +88,29 @@
         "name": { "$ref": "#/$defs/DeviceName" },
         "platform": { "$ref": "#/$defs/Platform" }
       }
+    },
+    "Sha256": {
+      "description": "SHA-256 digest, lowercase hex.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "FileName": {
+      "description": "Display name of a shared file. No path separators or control characters; receivers must still sanitise it before writing to disk.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^[^\\u0000-\\u001f\\u007f/\\\\]+$"
+    },
+    "MimeType": {
+      "type": "string",
+      "maxLength": 127,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9.+_-]*/[A-Za-z0-9][A-Za-z0-9.+_-]*$"
+    },
+    "TransferRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transferId"],
+      "properties": { "transferId": { "$ref": "#/$defs/Uuid" } }
     },
     "EmptyPayload": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
     "EventRef": {
@@ -359,6 +388,79 @@
           "properties": {
             "eventId": { "$ref": "#/$defs/Uuid" },
             "status": { "enum": ["relayed", "receiver_offline", "notified", "expired", "rejected"] }
+          }
+        }
+      }
+    },
+    "FileOffer": {
+      "description": "Device -> device (via relay). The sender has uploaded the file to the relay (POST /v1/transfers). The receiver downloads it, checks size and sha256 against this signed offer, and plays `effectId` while it arrives.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "required": ["sig"],
+      "properties": {
+        "sig": { "$ref": "#/$defs/Signature" },
+        "type": { "const": "FILE_OFFER" },
+        "from": { "$ref": "#/$defs/DeviceId" },
+        "to": { "$ref": "#/$defs/DeviceId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["transferId", "name", "size", "mime", "sha256", "effectId"],
+          "properties": {
+            "transferId": { "$ref": "#/$defs/Uuid" },
+            "name": { "$ref": "#/$defs/FileName" },
+            "size": { "type": "integer", "minimum": 0, "maximum": 4294967296 },
+            "mime": { "$ref": "#/$defs/MimeType" },
+            "sha256": { "$ref": "#/$defs/Sha256" },
+            "effectId": { "$ref": "#/$defs/EffectId" }
+          }
+        }
+      }
+    },
+    "FileReceived": {
+      "description": "Receiver -> sender. The file was downloaded, verified and saved.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "required": ["sig"],
+      "properties": {
+        "sig": { "$ref": "#/$defs/Signature" },
+        "type": { "const": "FILE_RECEIVED" },
+        "from": { "$ref": "#/$defs/DeviceId" },
+        "to": { "$ref": "#/$defs/DeviceId" },
+        "payload": { "$ref": "#/$defs/TransferRef" }
+      }
+    },
+    "FileFailed": {
+      "description": "Receiver -> sender. The file could not be received.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/Envelope" }],
+      "unevaluatedProperties": false,
+      "required": ["sig"],
+      "properties": {
+        "sig": { "$ref": "#/$defs/Signature" },
+        "type": { "const": "FILE_FAILED" },
+        "from": { "$ref": "#/$defs/DeviceId" },
+        "to": { "$ref": "#/$defs/DeviceId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["transferId", "reason"],
+          "properties": {
+            "transferId": { "$ref": "#/$defs/Uuid" },
+            "reason": {
+              "enum": [
+                "checksum_mismatch",
+                "download_failed",
+                "storage_error",
+                "too_large",
+                "invalid_signature",
+                "not_paired",
+                "expired",
+                "unsupported"
+              ]
+            }
           }
         }
       }
