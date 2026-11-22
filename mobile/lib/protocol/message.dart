@@ -56,6 +56,23 @@ enum EffectRelayStatus {
   final String wire;
 }
 
+enum FileFailureReason {
+  checksumMismatch('checksum_mismatch'),
+  downloadFailed('download_failed'),
+  storageError('storage_error'),
+  tooLarge('too_large'),
+  invalidSignature('invalid_signature'),
+  notPaired('not_paired'),
+  expired('expired'),
+  unsupported('unsupported');
+
+  const FileFailureReason(this.wire);
+  final String wire;
+}
+
+/// Largest file size the protocol can describe (4 GiB). The relay usually enforces a lower limit.
+const int maxProtocolFileSize = 4294967296;
+
 enum ErrorCode {
   badRequest('bad_request'),
   unauthorized('unauthorized'),
@@ -162,6 +179,34 @@ final class EffectStatusBody extends Body {
   const EffectStatusBody(this.eventId, this.status);
   final String eventId;
   final EffectRelayStatus status;
+}
+
+final class FileOfferBody extends Body {
+  const FileOfferBody({
+    required this.transferId,
+    required this.name,
+    required this.size,
+    required this.mime,
+    required this.sha256,
+    required this.effectId,
+  });
+  final String transferId;
+  final String name;
+  final int size;
+  final String mime;
+  final String sha256;
+  final String effectId;
+}
+
+final class FileReceivedBody extends Body {
+  const FileReceivedBody(this.transferId);
+  final String transferId;
+}
+
+final class FileFailedBody extends Body {
+  const FileFailedBody(this.transferId, this.reason);
+  final String transferId;
+  final FileFailureReason reason;
 }
 
 final class ErrorBody extends Body {
@@ -329,6 +374,28 @@ Body _parseBody(String type, String from, String to, String? sig, _Obj p) {
         p.string('eventId', test: isUuid),
         p.wireEnum('status', EffectRelayStatus.values, (s) => s.wire),
       );
+    case 'FILE_OFFER':
+      signed();
+      p.keys({'transferId', 'name', 'size', 'mime', 'sha256', 'effectId'});
+      return FileOfferBody(
+        transferId: p.string('transferId', test: isUuid),
+        name: p.string('name', min: 1, max: 255, test: isFileName),
+        size: p.integer('size', min: 0, max: maxProtocolFileSize),
+        mime: p.string('mime', max: 127, test: isMimeType),
+        sha256: p.string('sha256', test: isSha256),
+        effectId: p.string('effectId', test: isEffectId),
+      );
+    case 'FILE_RECEIVED':
+      signed();
+      p.keys({'transferId'});
+      return FileReceivedBody(p.string('transferId', test: isUuid));
+    case 'FILE_FAILED':
+      signed();
+      p.keys({'transferId', 'reason'});
+      return FileFailedBody(
+        p.string('transferId', test: isUuid),
+        p.wireEnum('reason', FileFailureReason.values, (r) => r.wire),
+      );
     case 'ERROR':
       serverOnly();
       p.keys({'code', 'message'}, optional: {'refId'});
@@ -363,9 +430,16 @@ bool _containsNull(Object? v) => switch (v) {
 final _uuid = RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
 final _effectId = RegExp(r'^[a-z0-9]+(-[a-z0-9]+)*$');
 final _base64Url = RegExp(r'^[A-Za-z0-9_-]+$');
+final _fileName = RegExp(r'^[^\u0000-\u001f\u007f/\\]+$');
+final _mime = RegExp(r'^[A-Za-z0-9][A-Za-z0-9.+_-]*/[A-Za-z0-9][A-Za-z0-9.+_-]*$');
+final _sha256 = RegExp(r'^[0-9a-f]{64}$');
 
 bool isUuid(String s) => _uuid.hasMatch(s);
 bool isEffectId(String s) => s.length <= 48 && _effectId.hasMatch(s);
+/// Same rule as protocol FileName: no control characters or path separators.
+bool isFileName(String s) => s.isNotEmpty && s.runes.length <= 255 && _fileName.hasMatch(s);
+bool isMimeType(String s) => s.length <= 127 && _mime.hasMatch(s);
+bool isSha256(String s) => _sha256.hasMatch(s);
 bool _isAddress(String s) => s == 'server' || isUuid(s);
 bool _isBase64Url(String s, int length) => s.length == length && _base64Url.hasMatch(s);
 

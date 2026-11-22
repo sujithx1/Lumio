@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../app.dart';
 import '../theme/tokens.g.dart';
 import '../widgets/common.dart';
+import '../widgets/send_files_sheet.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.onPair, required this.onSend});
@@ -130,9 +131,19 @@ class HomeScreen extends StatelessWidget {
                             : 'Offline'}',
                         style: text.bodySmall,
                       ),
-                      trailing: FilledButton.tonal(
-                        onPressed: p.online ? () => onSend(deviceId: p.deviceId) : null,
-                        child: const Text('Send'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: p.online && engine.isOnline ? () => startSendFiles(context, p.deviceId) : null,
+                            icon: const Icon(Icons.attach_file_rounded),
+                            tooltip: 'Send files',
+                          ),
+                          FilledButton.tonal(
+                            onPressed: p.online ? () => onSend(deviceId: p.deviceId) : null,
+                            child: const Text('Send'),
+                          ),
+                        ],
                       ),
                     ),
                   ),

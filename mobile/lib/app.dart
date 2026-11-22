@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'core/engine.dart';
 import 'effects/catalog.dart';
@@ -80,10 +81,17 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) LumioScope.read(context).reconnectNow();
   }
 
-  void _snack(String message, {Color? color}) {
+  void _snack(String message, {Color? color, SnackBarAction? action}) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message), backgroundColor: color, behavior: SnackBarBehavior.floating));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: color,
+          behavior: SnackBarBehavior.floating,
+          action: action,
+        ),
+      );
   }
 
   void _onEvent(CoreEvent e) {
@@ -126,6 +134,19 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           status == 'receiver_offline'
               ? 'That device is offline.'
               : 'Effect not shown${detail != null ? ': ${detail.replaceAll('_', ' ')}' : ''}.',
+          color: LumioColors.danger.withValues(alpha: 0.9),
+        );
+      case FileSavedEvent(:final name, :final fromName, :final path, :final inPhotos):
+        _snack(
+          'Received $name from $fromName${inPhotos ? ' · added to Photos' : ''}',
+          action: SnackBarAction(
+            label: 'Share',
+            onPressed: () => SharePlus.instance.share(ShareParams(files: [XFile(path)])),
+          ),
+        );
+      case FileReceiveFailedEvent(:final fromName, :final name, :final reason):
+        _snack(
+          "Couldn't receive $name from $fromName (${reason.wire.replaceAll('_', ' ')})",
           color: LumioColors.danger.withValues(alpha: 0.9),
         );
       case ErrorEvent(:final message):

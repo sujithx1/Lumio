@@ -76,6 +76,12 @@ class RecentEffect {
   final int at;
 }
 
+class TransferCreated {
+  TransferCreated(this.transferId, this.maxBytes);
+  final String transferId;
+  final int maxBytes;
+}
+
 class ApiException implements Exception {
   const ApiException(this.status, this.code, this.message);
   final int status;
@@ -222,6 +228,111 @@ class ApiClient {
   Future<List<RecentEffect>> recentEffects() async {
     final res = await _authed('GET', '/v1/effects/recent') as Map<String, dynamic>;
     return (res['effects'] as List).cast<Map<String, dynamic>>().map(RecentEffect.fromJson).toList();
+  }
+
+  /// The largest file the relay accepts.
+  Future<int> transferLimit() async {
+    final res = await _authed('GET', '/v1/transfers/limits') as Map<String, dynamic>;
+    return res['maxBytes'] as int;
+  }
+
+  /// Registers a file with the relay before uploading it.
+  Future<TransferCreated> createTransfer({
+    required String to,
+    required String name,
+    required int size,
+    required String mime,
+    required String sha256,
+  }) async {
+    final res = await _authed(
+      'POST',
+      '/v1/transfers',
+      body: {'to': to, 'name': name, 'size': size, 'mime': mime, 'sha256': sha256},
+    ) as Map<String, dynamic>;
+    return TransferCreated(res['transferId'] as String, res['maxBytes'] as int);
+  }
+
+  /// Streams a file to the relay, reporting bytes sent. The file is never loaded into memory.
+  Future<void> uploadTransfer(String transferId, File file, {void Function(int sent)? onProgress}) async {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final s = await session();
+      try {
+        final req = await _http
+            .openUrl('PUT', Uri.parse('$baseUrl/v1/transfers/$transferId/content'))
+            .timeout(_timeout);
+        req.headers.set(HttpHeaders.authorizationHeader, 'Bearer ${s.token}');
+        req.headers.contentType = ContentType.binary;
+        req.contentLength = await file.length();
+        var sent = 0;
+        await req.addStream(
+          file.openRead().map((chunk) {
+            sent += chunk.length;
+            onProgress?.call(sent);
+            return chunk;
+          }),
+        );
+        final res = await req.close().timeout(const Duration(seconds: 60));
+        final text = await res.transform(utf8.decoder).join();
+        if (res.statusCode == 204 || res.statusCode == 200) return;
+        if (res.statusCode == 401 && attempt == 0) {
+          _session = null;
+          continue;
+        }
+        throw _errorFrom(res.statusCode, text);
+      } on ApiException {
+        rethrow;
+      } on TimeoutException {
+        throw const ApiException(0, 'network', 'The upload stalled.');
+      } on IOException {
+        throw const ApiException(0, 'network', 'The upload was interrupted.');
+      }
+    }
+    throw const ApiException(401, 'unauthorized', 'Could not sign in.');
+  }
+
+  /// Opens the download of a file sent to this device. The caller must drain or cancel the stream.
+  Future<HttpClientResponse> downloadTransfer(String transferId) async {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final s = await session();
+      try {
+        final req = await _http
+            .openUrl('GET', Uri.parse('$baseUrl/v1/transfers/$transferId/content'))
+            .timeout(_timeout);
+        req.headers.set(HttpHeaders.authorizationHeader, 'Bearer ${s.token}');
+        final res = await req.close().timeout(_timeout);
+        if (res.statusCode == 200) return res;
+        final text = await res.transform(utf8.decoder).join();
+        if (res.statusCode == 401 && attempt == 0) {
+          _session = null;
+          continue;
+        }
+        throw _errorFrom(res.statusCode, text);
+      } on ApiException {
+        rethrow;
+      } on TimeoutException {
+        throw const ApiException(0, 'network', 'The Lumio server did not respond in time.');
+      } on IOException {
+        throw const ApiException(0, 'network', "Can't reach the Lumio server.");
+      }
+    }
+    throw const ApiException(401, 'unauthorized', 'Could not sign in.');
+  }
+
+  Future<void> cancelTransfer(String transferId) => _authed('DELETE', '/v1/transfers/$transferId');
+
+  ApiException _errorFrom(int status, String text) {
+    Object? json;
+    try {
+      json = text.isEmpty ? null : jsonDecode(text);
+    } on FormatException {
+      json = null;
+    }
+    final err = json is Map<String, dynamic> ? json['error'] as Map<String, dynamic>? : null;
+    return ApiException(
+      status,
+      err?['code'] as String? ?? 'error',
+      err?['message'] as String? ?? 'The server returned an error.',
+    );
   }
 
   void close() => _http.close(force: true);

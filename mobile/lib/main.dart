@@ -7,6 +7,7 @@ import 'app.dart';
 import 'core/api.dart';
 import 'core/engine.dart';
 import 'core/identity.dart';
+import 'core/settings.dart';
 import 'effects/catalog.dart';
 import 'effects/renderers.dart';
 
@@ -23,7 +24,8 @@ Future<void> main() async {
   final catalog = await EffectCatalog.load();
   final identity = await Identity.loadOrCreate(store);
   final server = await store.read(_serverKey) ?? _defaultServer;
-  runApp(LumioRoot(store: store, catalog: catalog, identity: identity, server: server));
+  final settings = await LumioSettings.load(store);
+  runApp(LumioRoot(store: store, catalog: catalog, identity: identity, server: server, settings: settings));
   WidgetsBinding.instance.addPostFrameCallback((_) => warmUpShaders());
 }
 
@@ -35,11 +37,13 @@ class LumioRoot extends StatefulWidget {
     required this.catalog,
     required this.identity,
     required this.server,
+    required this.settings,
   });
   final SecureStore store;
   final EffectCatalog catalog;
   final Identity identity;
   final String server;
+  final LumioSettings settings;
 
   @override
   State<LumioRoot> createState() => _LumioRootState();
@@ -58,7 +62,8 @@ class _LumioRootState extends State<LumioRoot> {
         appVersion: _appVersion,
       ),
     );
-    return LumioEngine(api: api, identity: widget.identity, catalog: widget.catalog)..start();
+    return LumioEngine(api: api, identity: widget.identity, catalog: widget.catalog, settings: widget.settings)
+      ..start();
   }
 
   Future<void> _changeServer(String url) async {

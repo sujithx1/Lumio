@@ -2,6 +2,8 @@
 //
 // Incoming effects pass, in order: schema validation -> addressed to us -> freshness -> replay ->
 // known paired sender -> Ed25519 signature -> trusted catalog -> not busy. Only then does the UI render.
+// Incoming files (FILE_OFFER) pass the same checks, then are downloaded from the relay and verified against
+// the size and SHA-256 in the signed offer before they are saved.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -13,7 +15,9 @@ import '../effects/catalog.dart';
 import '../protocol/canonical.dart';
 import '../protocol/message.dart' hide DeviceSummary;
 import 'api.dart';
+import 'files.dart';
 import 'identity.dart';
+import 'settings.dart';
 
 enum LumioConnection { connecting, online, offline, revoked }
 
@@ -26,6 +30,7 @@ class IncomingEffect {
     required this.duration,
     required this.intensity,
     required this.sound,
+    this.acknowledge = true,
   });
   final String eventId;
   final String fromDeviceId;
@@ -34,6 +39,28 @@ class IncomingEffect {
   final int duration;
   final double intensity;
   final bool sound;
+
+  /// False for effects played locally for an incoming file: there is no effect event to acknowledge.
+  final bool acknowledge;
+}
+
+enum OutgoingFileStatus { waiting, preparing, uploading, offered, delivered, failed }
+
+/// One file this device is sending, for progress in the UI.
+class OutgoingFile {
+  OutgoingFile({required this.localId, required this.to, required this.name, required this.size});
+  final String localId;
+  final String to;
+  final String name;
+  final int size;
+  OutgoingFileStatus status = OutgoingFileStatus.waiting;
+  int sent = 0;
+  String? transferId;
+  String? offerId;
+  String? error;
+
+  bool get finished => status == OutgoingFileStatus.delivered || status == OutgoingFileStatus.failed;
+  double get progress => size == 0 ? (sent > 0 || status.index >= 3 ? 1 : 0) : (sent / size).clamp(0.0, 1.0);
 }
 
 sealed class CoreEvent {
@@ -81,6 +108,23 @@ final class DeliveryEvent extends CoreEvent {
   final String? detail;
 }
 
+/// A file from a paired device was verified and saved.
+final class FileSavedEvent extends CoreEvent {
+  const FileSavedEvent({required this.name, required this.fromName, required this.path, required this.inPhotos});
+  final String name;
+  final String fromName;
+  final String path;
+  final bool inPhotos;
+}
+
+/// A file from a paired device could not be received.
+final class FileReceiveFailedEvent extends CoreEvent {
+  const FileReceiveFailedEvent(this.fromName, this.name, this.reason);
+  final String fromName;
+  final String name;
+  final FileFailureReason reason;
+}
+
 final class ErrorEvent extends CoreEvent {
   const ErrorEvent(this.message);
   final String message;
@@ -93,12 +137,30 @@ const _heartbeatTimeout = Duration(seconds: 45);
 const _closeReplaced = 4002;
 const _closeRevoked = 4003;
 
+/// A batch of files plays one effect: offers within this window of the last file effect play none.
+const fileEffectWindowMs = 8000;
+
 class LumioEngine extends ChangeNotifier {
-  LumioEngine({required this.api, required this.identity, required this.catalog});
+  LumioEngine({
+    required this.api,
+    required this.identity,
+    required this.catalog,
+    LumioSettings? settings,
+    this.files = const DeviceFileHost(),
+  }) : settings = settings ?? LumioSettings.memory();
 
   final ApiClient api;
   final Identity identity;
   final EffectCatalog catalog;
+  final LumioSettings settings;
+  final FileHost files;
+
+  /// Files being sent, by local id.
+  final Map<String, OutgoingFile> outgoing = {};
+  final Map<String, String> _fileOffers = {}; // offer message id -> local id
+  int _lastFileEffectAt = 0;
+  Future<void> _downloads = Future.value();
+  DateTime _lastProgressNotify = DateTime.fromMillisecondsSinceEpoch(0);
 
   DeviceSummary? me;
   LumioConnection connection = LumioConnection.connecting;
@@ -280,6 +342,15 @@ class LumioEngine extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Replaces the peer list without the network (tests and previews).
+  @visibleForTesting
+  void debugSetPeers(List<PeerRecord> records) {
+    _peers
+      ..clear()
+      ..addEntries(records.map((r) => MapEntry(r.deviceId, r)));
+    notifyListeners();
+  }
+
   Future<void> refreshRecent() async {
     try {
       recent = await api.recentEffects();
@@ -365,6 +436,7 @@ class LumioEngine extends ChangeNotifier {
     final active = _active;
     if (active == null || active.eventId != eventId) return;
     _active = null;
+    if (!active.acknowledge) return;
     await _ack(
       completed ? 'EFFECT_COMPLETED' : 'EFFECT_FAILED',
       active.fromDeviceId,
@@ -422,9 +494,18 @@ class LumioEngine extends ChangeNotifier {
         await _handleAck(msg, raw, eventId, 'failed', reason.wire);
       case EffectStatusBody(:final eventId, :final status):
         if (_sent.containsKey(eventId)) _delivery(DeliveryEvent(eventId, status.wire));
+      case FileOfferBody():
+        await _handleFileOffer(msg, raw);
+      case FileReceivedBody(:final transferId):
+        await _handleFileResult(msg, raw, transferId, null);
+      case FileFailedBody(:final transferId, :final reason):
+        await _handleFileResult(msg, raw, transferId, reason);
       case ErrorBody(:final message, :final refId):
+        final fileId = refId == null ? null : _fileOffers.remove(refId);
         if (refId != null && _sent.remove(refId) != null) {
           _delivery(DeliveryEvent(refId, 'failed', message));
+        } else if (fileId != null && outgoing[fileId] != null) {
+          _fileFailed(outgoing[fileId]!, message == 'receiver is offline' ? 'The device went offline.' : message);
         } else {
           _emit(ErrorEvent(message));
         }
@@ -513,6 +594,243 @@ class LumioEngine extends ChangeNotifier {
     }
     if (status != 'received') _sent.remove(eventId);
     _delivery(DeliveryEvent(eventId, status, detail));
+  }
+
+  // ---------------------------------------------------------------- files: sending
+
+  void _fileProgress({bool force = false}) {
+    final now = DateTime.now();
+    if (!force && now.difference(_lastProgressNotify) < const Duration(milliseconds: 100)) return;
+    _lastProgressNotify = now;
+    notifyListeners();
+  }
+
+  void _fileFailed(OutgoingFile f, String error) {
+    f
+      ..status = OutgoingFileStatus.failed
+      ..error = error;
+    if (f.offerId != null) _fileOffers.remove(f.offerId);
+    _fileProgress(force: true);
+  }
+
+  /// Sends files to a paired device, one after another. Returns their local ids (see [outgoing]).
+  /// Each is hashed and uploaded to the relay, then offered with a signed FILE_OFFER naming [effectId].
+  List<String> sendFiles(String to, List<PickedFile> picked, {String? effectId}) {
+    final effect = catalog.byId(effectId ?? settings.fileEffectId) ?? catalog.effects.first;
+    final batch = [
+      for (final p in picked)
+        OutgoingFile(localId: uuidV7(), to: to, name: sanitizeFileName(p.name), size: p.size),
+    ];
+    for (final f in batch) {
+      outgoing[f.localId] = f;
+    }
+    notifyListeners();
+    unawaited(() async {
+      for (final (i, f) in batch.indexed) {
+        await _sendOne(f, File(picked[i].path), effect.id);
+      }
+    }());
+    return [for (final f in batch) f.localId];
+  }
+
+  Future<void> _sendOne(OutgoingFile f, File file, String effectId) async {
+    try {
+      if (!_peers.containsKey(f.to)) return _fileFailed(f, 'That device is not paired.');
+      if (!isOnline) return _fileFailed(f, "You're offline.");
+      f.status = OutgoingFileStatus.preparing;
+      _fileProgress(force: true);
+      final size = await file.length();
+      final hash = await sha256OfFile(file);
+      final mime = mimeForName(f.name);
+
+      final TransferCreated created;
+      try {
+        created = await api.createTransfer(to: f.to, name: f.name, size: size, mime: mime, sha256: hash);
+      } on ApiException catch (e) {
+        if (e.status == 413) {
+          final limit = await api.transferLimit().catchError((_) => 0);
+          return _fileFailed(f, limit > 0 ? 'Too big to send (limit ${formatBytes(limit)}).' : 'Too big to send.');
+        }
+        return _fileFailed(f, e.message);
+      }
+      f
+        ..transferId = created.transferId
+        ..status = OutgoingFileStatus.uploading;
+      _fileProgress(force: true);
+
+      await api.uploadTransfer(
+        created.transferId,
+        file,
+        onProgress: (sent) {
+          f.sent = sent;
+          _fileProgress();
+        },
+      );
+
+      final offer = await _signed('FILE_OFFER', f.to, {
+        'transferId': created.transferId,
+        'name': f.name,
+        'size': size,
+        'mime': mime,
+        'sha256': hash,
+        'effectId': effectId,
+      });
+      f.offerId = offer['id'] as String;
+      _fileOffers[f.offerId!] = f.localId;
+      if (!_sendRaw(offer)) {
+        unawaited(api.cancelTransfer(created.transferId).catchError((_) {}));
+        return _fileFailed(f, "You're offline.");
+      }
+      f
+        ..sent = size
+        ..status = OutgoingFileStatus.offered;
+      _fileProgress(force: true);
+    } on ApiException catch (e) {
+      _fileFailed(f, e.message);
+    } on FileSystemException {
+      _fileFailed(f, "Couldn't read the file.");
+    }
+  }
+
+  Future<void> _handleFileResult(
+    LumioMessage msg,
+    Map<String, dynamic> raw,
+    String transferId,
+    FileFailureReason? reason,
+  ) async {
+    final f = outgoing.values.where((o) => o.transferId == transferId && o.to == msg.from).firstOrNull;
+    if (f == null || f.finished || await _verifiedPeer(msg, raw) == null) {
+      debugPrint('ignored file result for unknown or unverifiable transfer $transferId');
+      return;
+    }
+    if (f.offerId != null) _fileOffers.remove(f.offerId);
+    if (reason == null) {
+      f.status = OutgoingFileStatus.delivered;
+      _fileProgress(force: true);
+    } else {
+      _fileFailed(f, 'Not saved: ${reason.wire.replaceAll('_', ' ')}.');
+    }
+  }
+
+  // ---------------------------------------------------------------- files: receiving
+
+  Future<void> _handleFileOffer(LumioMessage msg, Map<String, dynamic> raw) async {
+    final offer = msg.body as FileOfferBody;
+    if (msg.to != me?.deviceId) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    Future<void> fail(String fromName, FileFailureReason reason, {bool tell = true}) async {
+      debugPrint('file ${offer.transferId} from ${msg.from} failed: ${reason.wire}');
+      _emit(FileReceiveFailedEvent(fromName, offer.name, reason));
+      if (tell) _sendRaw(await _signed('FILE_FAILED', msg.from, {'transferId': offer.transferId, 'reason': reason.wire}));
+    }
+
+    if (msg.createdAt > now + _clockSkewMs || msg.expiresAt + _clockSkewMs < now) {
+      return fail('A device', FileFailureReason.expired);
+    }
+    if (!_acceptOnce(msg.id, msg.expiresAt, now)) return;
+    if (!_peers.containsKey(msg.from)) await refreshPeers().catchError((_) {});
+    final peer = await _verifiedPeer(msg, raw);
+    if (peer == null) {
+      final known = _peers.containsKey(msg.from);
+      return fail('Unknown device', known ? FileFailureReason.invalidSignature : FileFailureReason.notPaired, tell: known);
+    }
+
+    // One effect per batch, and never over an effect that is already playing.
+    final spec = catalog.byId(offer.effectId);
+    if (spec != null && _active == null && now - _lastFileEffectAt > fileEffectWindowMs) {
+      _lastFileEffectAt = now;
+      final effect = IncomingEffect(
+        eventId: msg.id,
+        fromDeviceId: peer.deviceId,
+        fromName: peer.name,
+        effectId: spec.id,
+        duration: spec.defaultDuration,
+        intensity: spec.defaultIntensity,
+        sound: spec.hasSound,
+        acknowledge: false,
+      );
+      _active = effect;
+      _emit(EffectIncomingEvent(effect));
+    }
+
+    // Downloads run one at a time; the effect above plays while they do.
+    final done = _downloads.then((_) => _receive(peer, offer, fail));
+    _downloads = done.catchError((_) {});
+    await done;
+  }
+
+  Future<void> _receive(
+    PeerRecord peer,
+    FileOfferBody offer,
+    Future<void> Function(String fromName, FileFailureReason reason) fail,
+  ) async {
+    final Directory dir;
+    final File part;
+    final IOSink sink;
+    try {
+      dir = await files.receivedDirectory();
+      part = File('${dir.path}/.lumio-${offer.transferId}.part');
+      sink = part.openWrite();
+    } catch (_) {
+      return fail(peer.name, FileFailureReason.storageError);
+    }
+
+    final hasher = StreamingSha256();
+    var bytes = 0;
+    FileFailureReason? failure;
+    try {
+      final res = await api.downloadTransfer(offer.transferId);
+      await for (final chunk in res.timeout(const Duration(seconds: 30))) {
+        bytes += chunk.length;
+        if (bytes > offer.size) {
+          failure = FileFailureReason.tooLarge;
+          break;
+        }
+        hasher.add(chunk);
+        sink.add(chunk);
+      }
+    } on FileSystemException {
+      failure = FileFailureReason.storageError;
+    } catch (_) {
+      failure = FileFailureReason.downloadFailed;
+    }
+    try {
+      await sink.close();
+    } catch (_) {
+      failure ??= FileFailureReason.storageError;
+    }
+    final hash = hasher.close();
+    if (failure == null && bytes != offer.size) failure = FileFailureReason.downloadFailed;
+    if (failure == null && hash != offer.sha256) failure = FileFailureReason.checksumMismatch;
+    if (failure != null) {
+      await part.delete().catchError((_) => part);
+      return fail(peer.name, failure);
+    }
+
+    final File saved;
+    try {
+      saved = await part.rename('${dir.path}/${uniqueFileName(dir, sanitizeFileName(offer.name))}');
+    } catch (_) {
+      await part.delete().catchError((_) => part);
+      return fail(peer.name, FileFailureReason.storageError);
+    }
+
+    // Decided by our own reading of the extension, never by the sender's MIME type.
+    final name = saved.uri.pathSegments.last;
+    final media = isImageName(name) || isVideoName(name);
+    var inPhotos = false;
+    if (media && settings.savePhotos) {
+      try {
+        await files.saveToPhotos(saved, video: isVideoName(name));
+        inPhotos = true;
+      } catch (e) {
+        debugPrint('could not add $name to Photos: $e');
+      }
+    }
+
+    _sendRaw(await _signed('FILE_RECEIVED', peer.deviceId, {'transferId': offer.transferId}));
+    _emit(FileSavedEvent(name: name, fromName: peer.name, path: saved.path, inPhotos: inPhotos));
   }
 
   @override

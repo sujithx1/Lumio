@@ -75,5 +75,13 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Lumio adds photos and videos your other devices send you to your library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Lumio lets you pick photos and videos to send to your paired devices.</string>
 </dict>
 </plist>

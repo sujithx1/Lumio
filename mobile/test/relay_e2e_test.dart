@@ -6,17 +6,18 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumio/core/api.dart';
 import 'package:lumio/core/engine.dart';
+import 'package:lumio/core/files.dart';
 import 'package:lumio/core/identity.dart';
 import 'package:lumio/effects/catalog.dart';
 
-Future<LumioEngine> startEngine(String base, String name, EffectCatalog catalog) async {
+Future<LumioEngine> startEngine(String base, String name, EffectCatalog catalog, {FileHost? files}) async {
   final identity = await Identity.loadOrCreate(MemoryStore());
   final api = ApiClient(
     baseUrl: base,
     identity: identity,
     device: DeviceInfo(name: name, platform: 'ios', appVersion: '0.1.0-test'),
   );
-  return LumioEngine(api: api, identity: identity, catalog: catalog)..start();
+  return LumioEngine(api: api, identity: identity, catalog: catalog, files: files ?? const DeviceFileHost())..start();
 }
 
 Future<T> next<T extends CoreEvent>(LumioEngine e, [bool Function(T)? where]) =>
@@ -38,7 +39,10 @@ void main() {
     () async {
       final catalog = EffectCatalog.fromJson(File('assets/protocol/catalog.json').readAsStringSync());
       final phone = await startEngine(base!, 'Test iPhone', catalog);
-      final tablet = await startEngine(base, 'Test Android', catalog);
+      final tmp = await Directory.systemTemp.createTemp('lumio-e2e-');
+      addTearDown(() => tmp.delete(recursive: true));
+      final tabletFiles = DirectoryFileHost(Directory('${tmp.path}/tablet'));
+      final tablet = await startEngine(base, 'Test Android', catalog, files: tabletFiles);
       addTearDown(phone.dispose);
       addTearDown(tablet.dispose);
       await until(phone, () => phone.isOnline && tablet.isOnline);
@@ -79,6 +83,38 @@ void main() {
       final backDone = next<DeliveryEvent>(tablet, (d) => d.status == 'completed');
       await phone.finishIncoming(backId, completed: true);
       await backDone;
+
+      // Files phone -> tablet: uploaded, offered, one effect for the batch, verified and saved.
+      final photo = File('${tmp.path}/Beach day.jpg')..writeAsBytesSync(List.generate(300000, (i) => i % 251));
+      final notes = File('${tmp.path}/notes.txt')..writeAsStringSync('hello from the phone ✨');
+      PickedFile picked(File f) => PickedFile(path: f.path, name: f.uri.pathSegments.last, size: f.lengthSync());
+      final fileEffect = next<EffectIncomingEvent>(tablet);
+      final savedPhoto = next<FileSavedEvent>(tablet, (e) => e.name == 'Beach day.jpg');
+      final savedNotes = next<FileSavedEvent>(tablet, (e) => e.name == 'notes.txt');
+      final ids = phone.sendFiles(tablet.me!.deviceId, [picked(photo), picked(notes)], effectId: 'pirate-voyage');
+      final played = (await fileEffect).effect;
+      expect(played.effectId, 'pirate-voyage');
+      expect(played.acknowledge, isFalse);
+      final photoEvent = await savedPhoto;
+      expect(photoEvent.fromName, 'Test iPhone');
+      expect(photoEvent.inPhotos, isTrue);
+      expect(File(photoEvent.path).readAsBytesSync(), photo.readAsBytesSync());
+      expect(File((await savedNotes).path).readAsStringSync(), 'hello from the phone ✨');
+      expect(tabletFiles.photos, [photoEvent.path]);
+      await until(phone, () => ids.every((id) => phone.outgoing[id]!.status == OutgoingFileStatus.delivered));
+      await tablet.finishIncoming(played.eventId, completed: true);
+
+      // The same name again is kept alongside, and a file right after a batch plays no second effect.
+      var extraEffects = 0;
+      final effectSub = tablet.events.where((e) => e is EffectIncomingEvent).listen((_) => extraEffects++);
+      final again = next<FileSavedEvent>(tablet, (e) => e.name == 'Beach day (1).jpg');
+      final againId = phone.sendFiles(tablet.me!.deviceId, [picked(photo)]).single;
+      await again;
+      await until(phone, () => phone.outgoing[againId]!.status == OutgoingFileStatus.delivered);
+      await effectSub.cancel();
+      expect(extraEffects, 0);
+      final leftovers = Directory('${tmp.path}/tablet/Received').listSync().where((f) => f.path.contains('.lumio-'));
+      expect(leftovers, isEmpty);
 
       // Unpair reaches the other side.
       final revoked = next<PairRevokedEvent>(tablet);

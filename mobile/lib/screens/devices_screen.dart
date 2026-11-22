@@ -4,6 +4,7 @@ import '../app.dart';
 import '../core/api.dart';
 import '../theme/tokens.g.dart';
 import '../widgets/common.dart';
+import '../widgets/effect_picker.dart';
 
 class DevicesScreen extends StatelessWidget {
   const DevicesScreen({super.key, required this.onPair, this.onChangeServer});
@@ -107,6 +108,9 @@ class DevicesScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: LumioSpace.xxl),
+          const SectionTitle('Files'),
+          const FileSettingsCard(),
+          const SizedBox(height: LumioSpace.xxl),
           SectionTitle(
             'Paired devices${engine.peers.isEmpty ? '' : ' · ${engine.peers.length}'}',
             trailing: TextButton.icon(
@@ -171,4 +175,60 @@ Future<String?> _prompt(BuildContext context, String title, String initial, {int
       ],
     ),
   ).whenComplete(controller.dispose);
+}
+
+/// Which effect plays when this phone sends files, and where received files go.
+class FileSettingsCard extends StatelessWidget {
+  const FileSettingsCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final engine = LumioScope.of(context);
+    final settings = engine.settings;
+    final text = Theme.of(context).textTheme;
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) {
+        final effect = engine.catalog.byId(settings.fileEffectId) ?? engine.catalog.effects.first;
+        return Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(LumioRadius.sm),
+                  child: SizedBox(width: 40, height: 40, child: EffectSwatch(effect: effect, height: 40)),
+                ),
+                title: const Text('Effect when you send files'),
+                subtitle: Text(effect.name, style: text.bodySmall),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () async {
+                  final id = await pickEffect(
+                    context,
+                    engine.catalog,
+                    current: settings.fileEffectId,
+                    title: 'Effect when you send files',
+                  );
+                  if (id != null) settings.fileEffectId = id;
+                },
+              ),
+              const Divider(height: 1),
+              SwitchListTile(
+                title: const Text('Save photos & videos to Photos'),
+                subtitle: Text('Received pictures and videos also appear in your library.', style: text.bodySmall),
+                value: settings.savePhotos,
+                onChanged: (v) => settings.savePhotos = v,
+              ),
+              const Divider(height: 1),
+              ListTile(
+                dense: true,
+                leading: const Icon(Icons.folder_outlined),
+                title: const Text('Received files'),
+                subtitle: Text('Files app › On My iPhone › Lumio › Received', style: text.bodySmall),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
