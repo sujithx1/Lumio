@@ -52,6 +52,8 @@ make server     # terminal 1: relay on http://localhost:8787
 make desktop    # terminal 2: desktop app
 ```
 
+To keep the relay running without a terminal on macOS, `make autostart` installs a launch agent that opens Docker if needed, starts Postgres, applies migrations and runs the relay at every login, restarting it if it exits (logs in `~/Library/Logs/Lumio/server.log`). `make autostart-status` shows it; `make autostart-off` removes it. Stop it before running `make server`, which uses the same port.
+
 Then pair something with it:
 
 - **iPhone (Simulator):** `make mobile-ios`, tap the pair button, choose **Enter**, and type the code shown by the desktop's **Pair device → Show code**.

@@ -7,7 +7,7 @@ E2E_PORT := 8798
 E2E_URL := http://127.0.0.1:$(E2E_PORT)
 
 .PHONY: help doctor setup db-up db-down db-migrate server desktop desktop-b mobile-ios sim sync \
-        test test-server test-desktop test-mobile test-e2e
+        autostart autostart-off autostart-status test test-server test-desktop test-mobile test-e2e
 
 help:
 	@echo "make doctor        check required tools"
@@ -45,6 +45,16 @@ db-migrate:
 
 server:
 	cd server && bun run dev
+
+# Start the database and relay automatically at login (macOS launch agent). `make autostart-off` removes it.
+autostart:
+	infrastructure/macos/autostart.sh on
+
+autostart-off:
+	infrastructure/macos/autostart.sh off
+
+autostart-status:
+	infrastructure/macos/autostart.sh status
 
 desktop:
 	cd desktop && bun run tauri dev
