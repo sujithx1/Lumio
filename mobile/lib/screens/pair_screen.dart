@@ -62,7 +62,7 @@ class _PairScreenState extends State<PairScreen> {
         return;
       }
       final server = uri.queryParameters['server']?.replaceAll(RegExp(r'/+$'), '');
-      if (server != null && server != engine.api.baseUrl) {
+      if (server != null && !sameRelay(server, engine.api.baseUrl)) {
         setState(() => _error = 'That device uses a different relay server ($server). Change it under Devices first.');
         return;
       }
@@ -375,4 +375,17 @@ class _Result extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Whether two relay URLs point at the same server. Host names are case-insensitive and a trailing slash
+/// or an explicit default port makes no difference.
+bool sameRelay(String a, String b) {
+  final x = Uri.tryParse(a.trim());
+  final y = Uri.tryParse(b.trim());
+  if (x == null || y == null || !x.hasScheme || !y.hasScheme) return a.trim() == b.trim();
+  String path(Uri u) => u.path.replaceAll(RegExp(r'/+$'), '');
+  return x.scheme.toLowerCase() == y.scheme.toLowerCase() &&
+      x.host.toLowerCase() == y.host.toLowerCase() &&
+      x.port == y.port &&
+      path(x) == path(y);
 }

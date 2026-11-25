@@ -81,12 +81,33 @@ pub struct PairingSession {
     qr: QrMatrix,
 }
 
+/// This Mac's Bonjour name, e.g. `Sujiths-MacBook-Pro.local`.
+fn local_hostname() -> String {
+    let host = gethostname::gethostname().to_string_lossy().trim_end_matches('.').to_string();
+    if host.ends_with(".local") { host } else { format!("{host}.local") }
+}
+
+/// The relay address to put in a pairing QR code. A relay on `localhost` is only reachable from this
+/// computer, so other devices are told to use this computer's network name instead (same scheme and port).
+pub fn advertised_server_url(base: &str, hostname: &str) -> String {
+    let trimmed = base.trim_end_matches('/');
+    let Ok(url) = url::Url::parse(trimmed) else { return trimmed.to_string() };
+    let loopback = matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]" | "::1"));
+    if !loopback || hostname.is_empty() {
+        return trimmed.to_string();
+    }
+    // Built by hand rather than with Url::set_host, which lowercases the name; older phone builds compare exactly.
+    let port = url.port().map(|p| format!(":{p}")).unwrap_or_default();
+    format!("{}://{hostname}{port}{}", url.scheme(), url.path().trim_end_matches('/'))
+}
+
 /// Starts pairing: returns a one-time code and the QR matrix encoding `lumio://pair?...`.
 #[tauri::command]
 pub async fn create_pairing(state: State<'_, AppState>) -> CmdResult<PairingSession> {
     let created = state.engine.api().create_pairing().await.map_err(|e| e.message)?;
     let mut uri = url::Url::parse("lumio://pair").map_err(|e| e.to_string())?;
-    uri.query_pairs_mut().append_pair("code", &created.code).append_pair("server", state.engine.api().base_url());
+    let server = advertised_server_url(state.engine.api().base_url(), &local_hostname());
+    uri.query_pairs_mut().append_pair("code", &created.code).append_pair("server", &server);
     let qr = qrcode::QrCode::with_error_correction_level(uri.as_str(), qrcode::EcLevel::M).map_err(|e| e.to_string())?;
     let size = qr.width();
     let modules = qr.to_colors().iter().map(|c| if *c == qrcode::Color::Dark { '1' } else { '0' }).collect();
@@ -377,4 +398,25 @@ pub async fn server_status(state: State<'_, AppState>) -> CmdResult<ServerStatus
         protocol_compatible: Some(h.protocol == crate::protocol::PROTOCOL_VERSION),
         error: None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::advertised_server_url;
+
+    #[test]
+    fn localhost_relays_are_advertised_by_network_name() {
+        let host = "Sujiths-MacBook-Pro.local";
+        assert_eq!(advertised_server_url("http://localhost:8787", host), "http://Sujiths-MacBook-Pro.local:8787");
+        assert_eq!(advertised_server_url("http://127.0.0.1:8787/", host), "http://Sujiths-MacBook-Pro.local:8787");
+        assert_eq!(advertised_server_url("http://[::1]:8787", host), "http://Sujiths-MacBook-Pro.local:8787");
+    }
+
+    #[test]
+    fn other_relays_are_left_alone() {
+        let host = "mac.local";
+        assert_eq!(advertised_server_url("https://relay.example.com", host), "https://relay.example.com");
+        assert_eq!(advertised_server_url("http://Sujiths-MacBook-Pro.local:8787/", host), "http://Sujiths-MacBook-Pro.local:8787");
+        assert_eq!(advertised_server_url("http://localhost:8787", ""), "http://localhost:8787");
+    }
 }

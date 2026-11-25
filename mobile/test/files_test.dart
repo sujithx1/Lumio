@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lumio/screens/pair_screen.dart' show sameRelay;
 import 'package:lumio/app.dart';
 import 'package:lumio/core/api.dart';
 import 'package:lumio/core/engine.dart';
@@ -206,5 +207,13 @@ void main() {
     expect(f.finished, isFalse);
     f.status = OutgoingFileStatus.delivered;
     expect(f.finished, isTrue);
+  });
+
+  test('relay URLs match regardless of host case, trailing slash and default port', () {
+    expect(sameRelay('http://sujiths-macbook-pro.local:8787', 'http://Sujiths-MacBook-Pro.local:8787'), isTrue);
+    expect(sameRelay('https://relay.example.com/', 'https://relay.example.com:443'), isTrue);
+    expect(sameRelay('http://localhost:8787', 'http://Sujiths-MacBook-Pro.local:8787'), isFalse);
+    expect(sameRelay('http://mac.local:8787', 'http://mac.local:8788'), isFalse);
+    expect(sameRelay('http://mac.local:8787', 'https://mac.local:8787'), isFalse);
   });
 }
