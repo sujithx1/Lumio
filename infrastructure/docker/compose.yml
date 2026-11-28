@@ -3,6 +3,8 @@ name: lumio
 services:
   postgres:
     image: postgres:17-alpine
+    # Come back on its own when Docker restarts, so the relay started at login keeps its database.
+    restart: unless-stopped
     environment:
       POSTGRES_USER: lumio
       # Dev-only default; override with POSTGRES_PASSWORD in your shell or a .env next to this file.
