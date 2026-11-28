@@ -15,7 +15,7 @@ function windowLabel(): string | null {
 }
 
 // Dev builds opened in a plain browser can preview an effect with
-// ?effect=<id>&intensity=0.8&duration=6000&edge=right&overlay=1 (overlay shows a stand-in wallpaper).
+// ?effect=<id>&intensity=0.8&duration=6000&edge=right&overlay=1&from=iPhone (overlay shows a stand-in wallpaper).
 // &phase=depart previews the sender's departure instead; &at=<seconds> freezes the frame at that moment.
 function devPreview(): EffectLaunch | undefined {
   if (!import.meta.env.DEV || windowLabel() !== null) return undefined;
@@ -35,7 +35,7 @@ function devPreview(): EffectLaunch | undefined {
     duration: Number(q.get("duration") ?? (depart ? 1100 : 600000)),
     intensity: Number(q.get("intensity") ?? 0.8),
     sound: false,
-    fromName: "Preview",
+    fromName: q.get("from") ?? "Preview",
     edge: q.get("edge") === "left" ? "left" : "right",
     overlay,
     phase: depart ? "depart" : "arrive",

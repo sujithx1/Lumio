@@ -1,14 +1,69 @@
-# Lumio
+<p align="center">
+  <img src="docs/media/handoff.svg" alt="An effect flies from a phone to a laptop and bursts on its screen" width="100%">
+</p>
 
-Pair your computers and phones and send beautiful visual effects between them.
+<h1 align="center">
+  <img src="mobile/assets/icon/logo.png" alt="" width="72"><br>
+  Lumio
+</h1>
 
-A device shows a QR code (or a short code), another device scans or types it, both screens show the same 6-digit number, and once approved either device can trigger effects on the other. On a computer, effects float **over the desktop** (see-through, clicks pass through) and arrive **from the screen edge where you keep your phone** (the Send Zone). On a phone you **flick an effect card up toward the computer** to send it.
+<p align="center"><b>Send light between your devices.</b><br>
+Pair your phone and computer, then fling animated effects, characters and files from one screen to the other.</p>
 
-You can also **share photos, videos and any file** between paired devices. While a file arrives, the receiving screen plays your chosen effect, and the file lands in the folder set in Settings.
+<p align="center">
+  <img alt="macOS" src="https://img.shields.io/badge/macOS-working-22c55e">
+  <img alt="iOS" src="https://img.shields.io/badge/iOS-working-22c55e">
+  <img alt="Windows" src="https://img.shields.io/badge/Windows-coming-f59e0b">
+  <img alt="Linux" src="https://img.shields.io/badge/Linux-coming-f59e0b">
+  <img alt="Android" src="https://img.shields.io/badge/Android-coming-f59e0b">
+</p>
 
-19 effects: Cosmic Portal, Rainbow, Volcano, Lightning, Celebration, Matrix, Aurora, Fireworks, plus original anime- and cartoon-style effects (Spiral Orb, Pirate Voyage, Giant's Wall, Power Aura, Cartoon Parade) and Event Horizon (a black hole), and five original characters: Tiny Ronin (a little swordsman), Boing (a stretchy-armed kid), Kaze (a fox-eared swordswoman), Pebble (a cadet and her friendly stone giant) and Snooze (a sleepy cat-eared kid with lightning).
+## What it does
 
-Every effect is a **handoff**: it starts on the sender's screen and leaves toward the other device (out of the top of the phone, or out of the computer's Send Zone edge), then arrives on the receiver from the matching edge. Effects are signed by the sender's device key and verified by the receiver; a receiver only ever renders effects from its built-in catalog.
+- **Pair in seconds.** One device shows a QR code, the other scans it, and both show the same 6-digit number to approve.
+- **Send effects that travel.** Every effect is a handoff: it leaves the sender's screen and arrives on the receiver from the edge where that device sits. On a phone, flick a card up toward your computer.
+- **Over your desktop.** On a computer, effects float over everything you have open: see-through, and clicks pass straight through.
+- **Share files the fun way.** Photos, videos and any file, with your chosen effect playing as it lands in your save folder.
+- **Works anywhere.** Devices meet through an online relay, so it works across Wi-Fi networks and on mobile data.
+- **Private by design.** No accounts or passwords. Every message is signed with the sending device's key, and a device only plays effects from its own built-in catalog.
+
+## Effects
+
+19 effects, including five original characters.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/media/tiny-ronin.gif" alt="Tiny Ronin" width="100%"><br><b>Tiny Ronin</b> · a little swordsman</td>
+    <td align="center"><img src="docs/media/kaze.gif" alt="Kaze" width="100%"><br><b>Kaze</b> · a fox-eared wind dancer</td>
+    <td align="center"><img src="docs/media/snooze.gif" alt="Snooze" width="100%"><br><b>Snooze</b> · a sleepy kid with lightning</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/media/fireworks.gif" alt="Fireworks" width="100%"><br><b>Fireworks</b></td>
+    <td align="center"><img src="docs/media/cosmic-portal.gif" alt="Cosmic Portal" width="100%"><br><b>Cosmic Portal</b></td>
+    <td align="center"><img src="docs/media/event-horizon.gif" alt="Event Horizon" width="100%"><br><b>Event Horizon</b> · a black hole</td>
+  </tr>
+</table>
+
+Also: Rainbow, Volcano, Lightning, Celebration, Matrix, Aurora, Spiral Orb, Pirate Voyage, Giant's Wall, Power Aura, Cartoon Parade, and the characters Boing (a stretchy-armed kid) and Pebble (a cadet and her friendly stone giant).
+
+## How it works
+
+```
+ Phone ──┐                                   ┌── Computer
+         │   signed message (Ed25519)        │
+         └──►  Lumio relay (Bun + Postgres)  ◄──┘
+               checks pairing, forwards it,
+               holds files until delivered
+```
+
+Each device has its own key, kept in the system keychain. The relay only forwards messages between paired devices and deletes shared files as soon as they are delivered (or after 30 minutes). The receiver checks the sender's signature before playing anything.
+
+| Part | Built with |
+|---|---|
+| Desktop app | Tauri 2 (Rust) + React + TypeScript, WebGL and Canvas effects |
+| Mobile app | Flutter, fragment shaders and CustomPainter effects, haptics |
+| Relay server | Bun + Hono + WebSockets, PostgreSQL with Drizzle |
+| Protocol | JSON Schema, shared test fixtures and signing vectors checked in TypeScript, Rust and Dart |
 
 ## Status
 
@@ -16,7 +71,8 @@ Every effect is a **handoff**: it starts on the sender's screen and leaves towar
 |---|---|
 | Relay server (auth, pairing, presence, signed effect routing) | ✅ Built and tested against real Postgres |
 | Desktop app (Tauri) | ✅ macOS built and run. Windows/Linux: same code, not yet built or tested |
-| Mobile app (Flutter) | ✅ iOS built and run in the Simulator. Android: code complete, not yet built (no SDK on the dev machine) |
+| Online relay | ✅ Deployed on Render with a Neon database (see below) |
+| Mobile app (Flutter) | ✅ iOS built and run on an iPhone and in the Simulator. Android: code complete, not yet built (no SDK on the dev machine) |
 | Effects | ✅ 19 on desktop (see-through overlay, WebGL + Canvas, synthesised sound) and 19 on mobile (fragment shaders + CustomPainter over the app, haptics), with a sender-to-receiver handoff |
 | Send Zone, overlay mode, flick to send | ✅ Desktop setting under **Devices → Effects on this computer**; flick card in the phone's send sheet |
 | File sharing | ✅ Relay upload/download with signed offers, size + SHA-256 checks, an effect while files arrive, save folder in settings. Not end-to-end encrypted yet |
@@ -102,3 +158,5 @@ Editing the effect catalog or design tokens? Run `make sync`.
 4. `make test`: the registry tests fail until every catalog effect has a renderer on both platforms.
 
 Desktop effects can be previewed in a browser during development: `cd desktop && bun run dev`, then open `http://localhost:1420/?effect=pirate-voyage&duration=7000&edge=right`.
+
+To record README animations of effects (uses the Chrome installed on your machine): keep `bun run dev` running, then `cd desktop && bun scripts/readme-gifs.ts tiny-ronin kaze` writes `docs/media/<effect>.gif`.
