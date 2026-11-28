@@ -3,7 +3,9 @@ import pkg from "../package.json" with { type: "json" };
 import { createApp } from "./app";
 import type { Config } from "./config";
 import { createDb } from "./db/client";
+import { resolveClientIp } from "./lib/client-ip";
 import type { Logger } from "./lib/logger";
+import { getConnInfo } from "hono/bun";
 import { authRoutes, requireDevice, type AppEnv } from "./modules/auth/routes";
 import { ChallengeStore, createTokenService } from "./modules/auth/service";
 import { createDeviceRepo } from "./modules/devices/repo";
@@ -53,9 +55,18 @@ export function startServer(config: Config, logger: Logger, options: ServerOptio
     transfers,
     logger,
     preAuthLimit: Math.max(40, options.ipRateLimitPerMinute ?? 0),
+    clientIp: (req, srv) => resolveClientIp(req.headers, srv.requestIP(req)?.address, config.trustedProxies),
   });
 
   const api = new Hono<AppEnv>();
+  api.use(async (c, next) => {
+    let socket: string | undefined;
+    try {
+      socket = getConnInfo(c).remote.address;
+    } catch {}
+    c.set("ip", resolveClientIp(c.req.raw.headers, socket, config.trustedProxies));
+    await next();
+  });
   const ipLimit = options.ipRateLimitPerMinute ?? 30;
   api.route("/auth", authRoutes({ repo, tokens, challenges, rateLimitPerMinute: ipLimit }));
   const authed = new Hono<AppEnv>();

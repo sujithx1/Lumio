@@ -35,6 +35,7 @@ describe.skipIf(!url)("relay end-to-end (integration)", () => {
         jwtSecret: "test-secret-test-secret-test-secret!!",
         tokenTtlSeconds: 900,
         filesDir: filesDir,
+        trustedProxies: 0,
         maxFileBytes: 64 * 1024,
       },
       createLogger("error"),

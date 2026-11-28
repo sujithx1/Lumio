@@ -62,7 +62,21 @@ Then pair something with it:
 
 Android emulator: `cd mobile && flutter run --dart-define=LUMIO_SERVER_URL=http://10.0.2.2:8787`. A real phone needs the relay at an address it can reach; set it under **Devices → Relay server**.
 
-Deploying the relay: `docker build -f infrastructure/docker/server.Dockerfile -t lumio-server .`, then run it with `DATABASE_URL` and `JWT_SECRET` behind a TLS-terminating proxy.
+## Put the relay online (Render + Neon, free)
+
+So devices can reach each other anywhere, not only on your Wi-Fi.
+
+1. **Database — [Neon](https://neon.tech):** create a free project in the region closest to you, then copy its connection string (**Connect** → the *direct* connection, not the pooled one). It looks like `postgresql://user:password@ep-….neon.tech/neondb?sslmode=require`.
+2. **Server — [Render](https://render.com):** **New → Blueprint**, pick this GitHub repository. Render reads [`render.yaml`](render.yaml), builds the Docker image and asks for `DATABASE_URL`: paste the Neon string. `JWT_SECRET` is generated for you. Change `region` in `render.yaml` first if Singapore is not closest to your Neon database.
+3. **Check it:** `https://<service>.onrender.com/health` should answer `{"status":"ok","db":"ok",…}`. Migrations run on every start.
+4. **Point the apps at it:**
+   - macOS: `cd desktop && LUMIO_SERVER_URL=https://<service>.onrender.com bun run tauri build --bundles app` (the address is built into the app; `LUMIO_SERVER_URL` at run time still overrides it).
+   - iOS/Android: `flutter build ios --release --dart-define=LUMIO_SERVER_URL=https://<service>.onrender.com`, or change it in the app under **Devices → Relay server**.
+5. Pair your devices again: the new database starts empty.
+
+On Render's free plan the server sleeps after 15 minutes with no device connected (the apps send a heartbeat every 20 s while open) and takes about a minute to wake; files waiting for delivery are lost if it restarts, and are capped at 100 MB (`MAX_FILE_BYTES`). Render's paid plan removes the sleep with no other change.
+
+Elsewhere: `docker build -f infrastructure/docker/server.Dockerfile -t lumio-server .`, then run it with `DATABASE_URL` and `JWT_SECRET` behind a TLS-terminating proxy, and set `TRUSTED_PROXIES` to the number of proxies in front of it so per-IP rate limits see real client addresses.
 
 ## Test
 

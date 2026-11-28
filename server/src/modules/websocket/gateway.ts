@@ -42,6 +42,8 @@ interface GatewayDeps {
   logger: Logger;
   /** Frames per 10 s per IP before a socket has authenticated. Default 40; raised in tests. */
   preAuthLimit?: number;
+  /** The client's address for an upgrade request. Defaults to the socket address. */
+  clientIp?: (req: Request, server: Server<WsData>) => string;
 }
 
 /**
@@ -50,7 +52,16 @@ interface GatewayDeps {
  * 2. Both sides exchange HEARTBEAT; sockets silent for 45 s are closed.
  * 3. EFFECT_* and FILE_* messages are validated, checked against the authenticated identity and routed.
  */
-export function createGateway({ presence, repo, tokens, router, transfers, logger, preAuthLimit = 40 }: GatewayDeps) {
+export function createGateway({
+  presence,
+  repo,
+  tokens,
+  router,
+  transfers,
+  logger,
+  preAuthLimit = 40,
+  clientIp = (req, server) => server.requestIP(req)?.address ?? "unknown",
+}: GatewayDeps) {
   const sockets = new Set<LumioSocket>();
   const floodLimiter = new RateLimiter(40, 10_000);
   const preAuthLimiter = new RateLimiter(preAuthLimit, 10_000);
@@ -168,7 +179,7 @@ export function createGateway({ presence, repo, tokens, router, transfers, logge
   return {
     /** Upgrades GET /v1/ws. Returns a Response only when the upgrade fails. */
     upgrade(req: Request, server: Server<WsData>): Response | undefined {
-      const ip = server.requestIP(req)?.address ?? "unknown";
+      const ip = clientIp(req, server);
       return server.upgrade(req, { data: { ip, lastSeen: Date.now() } })
         ? undefined
         : new Response("expected a WebSocket upgrade", { status: 426 });

@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { createApp } from "../src/app";
 import { ConfigError, loadConfig } from "../src/config";
+import { normalizeDatabaseUrl } from "../src/db/client";
+import { resolveClientIp } from "../src/lib/client-ip";
 import { createLogger } from "../src/lib/logger";
 
 const logger = createLogger("error");
@@ -53,7 +55,13 @@ describe("loadConfig", () => {
       tokenTtlSeconds: 900,
       filesDir: "./data/transfers",
       maxFileBytes: 1024 ** 3,
+      trustedProxies: 0,
     });
+  });
+  test("rejects a bad TRUSTED_PROXIES", () => {
+    expect(loadConfig({ ...base, TRUSTED_PROXIES: "1" }).trustedProxies).toBe(1);
+    expect(() => loadConfig({ ...base, TRUSTED_PROXIES: "-1" })).toThrow(ConfigError);
+    expect(() => loadConfig({ ...base, TRUSTED_PROXIES: "many" })).toThrow(ConfigError);
   });
   test("rejects a bad MAX_FILE_BYTES", () => {
     expect(() => loadConfig({ ...base, MAX_FILE_BYTES: "0" })).toThrow(ConfigError);
@@ -70,5 +78,36 @@ describe("loadConfig", () => {
   });
   test("rejects an unknown log level", () => {
     expect(() => loadConfig({ ...base, LOG_LEVEL: "loud" })).toThrow(ConfigError);
+  });
+});
+
+describe("resolveClientIp", () => {
+  const h = (xff?: string) => new Headers(xff ? { "x-forwarded-for": xff } : {});
+  test("ignores X-Forwarded-For when no proxy is trusted", () => {
+    expect(resolveClientIp(h("6.6.6.6"), "10.0.0.1", 0)).toBe("10.0.0.1");
+  });
+  test("takes the address the trusted proxy saw", () => {
+    expect(resolveClientIp(h("203.0.113.7"), "10.0.0.1", 1)).toBe("203.0.113.7");
+  });
+  test("a client cannot spoof its address by sending its own header", () => {
+    expect(resolveClientIp(h("6.6.6.6, 203.0.113.7"), "10.0.0.1", 1)).toBe("203.0.113.7");
+  });
+  test("two proxies", () => {
+    expect(resolveClientIp(h("6.6.6.6, 203.0.113.7, 172.16.0.2"), "10.0.0.1", 2)).toBe("203.0.113.7");
+  });
+  test("falls back to the socket when the header is missing", () => {
+    expect(resolveClientIp(h(), "10.0.0.1", 1)).toBe("10.0.0.1");
+    expect(resolveClientIp(h(), undefined, 1)).toBe("unknown");
+  });
+});
+
+describe("normalizeDatabaseUrl", () => {
+  test("drops channel_binding and keeps sslmode", () => {
+    expect(normalizeDatabaseUrl("postgresql://u:p@ep-x.neon.tech/db?sslmode=require&channel_binding=require")).toBe(
+      "postgresql://u:p@ep-x.neon.tech/db?sslmode=require",
+    );
+  });
+  test("leaves other URLs alone", () => {
+    expect(normalizeDatabaseUrl("postgres://u:p@localhost:5442/lumio")).toBe("postgres://u:p@localhost:5442/lumio");
   });
 });

@@ -23,6 +23,16 @@ fn platform() -> &'static str {
 }
 
 /// `LUMIO_PROFILE` lets several instances (each its own device) run on one machine during development.
+/// The relay address: LUMIO_SERVER_URL at run time (development), else the one baked in at build time
+/// (`LUMIO_SERVER_URL=https://… bun run tauri build`), else a relay on this machine.
+fn server_url() -> String {
+    std::env::var("LUMIO_SERVER_URL")
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+        .or_else(|| option_env!("LUMIO_SERVER_URL").filter(|v| !v.trim().is_empty()).map(str::to_string))
+        .unwrap_or_else(|| "http://localhost:8787".into())
+}
+
 fn profile() -> String {
     let raw = std::env::var("LUMIO_PROFILE").unwrap_or_else(|_| "default".into());
     let clean: String = raw.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').take(32).collect();
@@ -82,7 +92,7 @@ pub fn run() {
             let store = settings::SettingsStore::load(data_dir.join("settings.json"));
             let download_dir = store.get().resolved_download_dir(&commands::downloads_dir(app.handle()));
             app.manage(store);
-            let server_url = std::env::var("LUMIO_SERVER_URL").unwrap_or_else(|_| "http://localhost:8787".into());
+            let server_url = server_url();
             let app_version = app.package_info().version.to_string();
             let api = Arc::new(ApiClient::new(
                 &server_url,

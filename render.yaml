@@ -1,0 +1,32 @@
+# Render Blueprint for the Lumio relay: https://render.com/docs/blueprint-spec
+# Render builds infrastructure/docker/server.Dockerfile and serves it over HTTPS at https://<name>.onrender.com.
+# The database is not here: use a free Neon Postgres and paste its connection string as DATABASE_URL when asked.
+services:
+  - type: web
+    name: lumio-relay
+    runtime: docker
+    plan: free
+    # Keep the server next to the database: pick the Neon region closest to this one.
+    region: singapore
+    dockerfilePath: ./infrastructure/docker/server.Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "8787"
+      - key: LOG_LEVEL
+        value: info
+      # Render's proxy sits in front of the server: take the client address from X-Forwarded-For.
+      - key: TRUSTED_PROXIES
+        value: "1"
+      # The free plan has an ephemeral disk and limited bandwidth: keep files in transit small.
+      - key: FILES_DIR
+        value: /tmp/lumio-transfers
+      - key: MAX_FILE_BYTES
+        value: "104857600"

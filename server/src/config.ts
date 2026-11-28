@@ -12,6 +12,8 @@ export interface Config {
   filesDir: string;
   /** Largest file a device may send. */
   maxFileBytes: number;
+  /** Proxies in front of the server whose X-Forwarded-For entries are trusted (0 = none). See lib/client-ip.ts. */
+  trustedProxies: number;
 }
 
 /** 1 GiB. */
@@ -47,5 +49,20 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
   }
   const filesDir = env.FILES_DIR || "./data/transfers";
 
-  return { port, host: env.HOST ?? "::", databaseUrl, logLevel, jwtSecret, tokenTtlSeconds, filesDir, maxFileBytes };
+  const trustedProxies = Number(env.TRUSTED_PROXIES ?? "0");
+  if (!Number.isInteger(trustedProxies) || trustedProxies < 0 || trustedProxies > 5) {
+    throw new ConfigError("TRUSTED_PROXIES must be an integer between 0 and 5");
+  }
+
+  return {
+    port,
+    host: env.HOST ?? "::",
+    databaseUrl,
+    logLevel,
+    jwtSecret,
+    tokenTtlSeconds,
+    filesDir,
+    maxFileBytes,
+    trustedProxies,
+  };
 }

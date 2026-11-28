@@ -7,11 +7,14 @@ import type { DeviceRepo, DeviceRow } from "../devices/repo";
 import { toSummary } from "../devices/repo";
 import type { ChallengeStore, TokenService } from "./service";
 
-export type AppEnv = { Variables: { device: DeviceRow } };
+/** `ip` is set by startServer from the socket or X-Forwarded-For (see lib/client-ip.ts). */
+export type AppEnv = { Variables: { device: DeviceRow; ip?: string } };
 
 const PLATFORMS: readonly Platform[] = ["macos", "windows", "linux", "android", "ios"];
 
 export function clientIp(c: Context): string {
+  const resolved = c.get("ip") as string | undefined;
+  if (resolved) return resolved;
   try {
     return getConnInfo(c).remote.address ?? "unknown";
   } catch {
